@@ -1,0 +1,57 @@
+# -----------------------------------
+# 1. System Files (OS & IDE)
+# -----------------------------------
+.DS_Store          # Mac
+Thumbs.db          # Windows
+.idea/             # IntelliJ/GoLand
+.vscode/           # VS Code
+*.swp              # Vim
+*.swo
+
+# -----------------------------------
+# 2. Go Build Artifacts
+# -----------------------------------
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+main               # Linux/Mac binary name (default)
+
+# Build Directories
+bin/
+build/
+pkg/
+vendor/            # If you are not vendoring dependencies
+
+# Go specific
+go.work
+go.work.sum
+.gocache/
+# -----------------------------------
+# 3. ZKP Artifacts (Huge Files)
+# -----------------------------------
+# 키 파일들은 build 디렉터리에서만 제외 (임베딩용 소스는 포함)
+*.proof
+*.sol              # Solidity verifier generated file
+build/*.pk
+build/*.vk
+html/user.pk       # 복사된 키 파일 제외
+
+# -----------------------------------
+# 4. Web/Wasm Artifacts
+# -----------------------------------
+client/node_modules/
+client/dist/
+client/wasm/dist/
+html/identify.wasm # 빌드된 WASM 파일은 소스가 아니므로 제외
+
+# -----------------------------------
+# 5. Logs & Temp
+# -----------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
