@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.21.x", "1.22.x"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Go test
+        run: go test ./...
+
+      - name: WASM build
+        run: GOOS=js GOARCH=wasm go build -o /tmp/identify.wasm ./client/wasm
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: identify-wasm-${{ matrix.go-version }}
+          path: /tmp/identify.wasm

@@ -39,6 +39,8 @@ go.work.sum
 build/*.pk
 build/*.vk
 html/user.pk       # 복사된 키 파일 제외
+!client/user.pk    # embedded proving key (must be tracked)
+!server/user.vk    # embedded verifying key (must be tracked)
 
 # -----------------------------------
 # 4. Web/Wasm Artifacts

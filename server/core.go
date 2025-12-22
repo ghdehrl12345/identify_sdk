@@ -9,6 +9,7 @@ import (
 	"github.com/ghdehrl12345/identify_sdk/core/circuits"
 
 	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark-crypto/ecc/bn254/fr/mimc"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 )
@@ -19,10 +20,26 @@ var verifyingKeyData []byte
 // RealIdentify verifies Groth16 proofs with an embedded verifying key.
 type RealIdentify struct {
 	verifyingKey groth16.VerifyingKey
+	currentYear  int
+	limitAge     int
 }
 
 // NewRealSDK instantiates an IdentifySDK backed by the embedded verifying key.
 func NewRealSDK() (IdentifySDK, error) {
+	return NewRealSDKWithConfig(RealIdentifyConfig{
+		CurrentYear: 2025,
+		LimitAge:    20,
+	})
+}
+
+// RealIdentifyConfig allows callers to inject policy parameters (year/age) to avoid hard-coded values.
+type RealIdentifyConfig struct {
+	CurrentYear int
+	LimitAge    int
+}
+
+// NewRealSDKWithConfig instantiates an IdentifySDK with injected policy parameters.
+func NewRealSDKWithConfig(cfg RealIdentifyConfig) (IdentifySDK, error) {
 	vk := groth16.NewVerifyingKey(ecc.BN254)
 	if len(verifyingKeyData) == 0 {
 		return nil, fmt.Errorf("임베딩된 검증키가 비어있습니다 (setup 실행 필요)")
@@ -33,12 +50,22 @@ func NewRealSDK() (IdentifySDK, error) {
 		return nil, fmt.Errorf("검증키 파싱 실패: %v", err)
 	}
 
-	return &RealIdentify{verifyingKey: vk}, nil
+	return &RealIdentify{
+		verifyingKey: vk,
+		currentYear:  cfg.CurrentYear,
+		limitAge:     cfg.LimitAge,
+	}, nil
 }
 
 // CreateCommitment derives a deterministic MiMC-style hash placeholder for storage in databases.
 func (r *RealIdentify) CreateCommitment(secret string) (string, error) {
-	return "MIMC_HASH_" + secret, nil
+	hasher := mimc.NewMiMC()
+	hasher.Write([]byte(secret))
+	hashResult := hasher.Sum(nil)
+
+	var hashInt big.Int
+	hashInt.SetBytes(hashResult)
+	return hashInt.String(), nil
 }
 
 // VerifyLogin parses the Groth16 proof and checks it against the stored commitment and challenge parameters.
@@ -50,12 +77,14 @@ func (r *RealIdentify) VerifyLogin(proofBytes []byte, publicCommitment string, c
 	}
 
 	var publicHashInt big.Int
-	publicHashInt.SetString(publicCommitment, 10)
+	if _, ok := publicHashInt.SetString(publicCommitment, 10); !ok {
+		return false, fmt.Errorf("공개 커밋먼트 파싱 실패: %s", publicCommitment)
+	}
 
 	assignment := circuits.UserCircuit{
 		PublicHash:  publicHashInt,
-		CurrentYear: 2025,
-		LimitAge:    20,
+		CurrentYear: r.currentYear,
+		LimitAge:    r.limitAge,
 		Challenge:   challenge,
 	}
 

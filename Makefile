@@ -22,3 +22,7 @@ serve:
 clean:
 	@echo ">> Cleaning build artifacts"
 	rm -rf build html/identify.wasm .gocache
+
+bench:
+	@echo ">> Running benchmarks"
+	GOCACHE=$(PWD)/.gocache $(GO) test -bench=. -benchmem ./server
