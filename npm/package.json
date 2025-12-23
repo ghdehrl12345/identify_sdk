@@ -1,0 +1,38 @@
+{
+  "name": "identify-sdk",
+  "version": "2.0.0",
+  "description": "Zero-knowledge proof security toolkit for passwordless authentication and privacy-preserving verification",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node scripts/test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "zkp",
+    "zero-knowledge-proof",
+    "authentication",
+    "privacy",
+    "groth16",
+    "wasm",
+    "security",
+    "passwordless"
+  ],
+  "author": "ghdehrl12345",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ghdehrl12345/identify_sdk.git"
+  },
+  "homepage": "https://github.com/ghdehrl12345/identify_sdk#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
