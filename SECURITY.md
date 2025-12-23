@@ -7,3 +7,5 @@
 - Consider rotating proving/verifying keys when updating circuits or after long-term use.
 - For vulnerability reports, please open a private security advisory on GitHub or contact the maintainers before public disclosure.
 - Manage secrets (if any) via your KMS and ensure transport is protected via TLS; enable application-level logging/monitoring for verification events.
+- Keep the proving/verifying key fingerprints aligned (`client.ProvingKeyID`, `server.VerifyingKeyID`, `ExpectedVK`); reject mismatched versions.
+- Ensure client and server use the same policy inputs (`currentYear`, `limitAge`); policy drift will fail verification.

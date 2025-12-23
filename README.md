@@ -78,6 +78,21 @@ The client compiles the circuit, loads the embedded proving key, and returns bot
   - `InitIdentify(pkBytes)` to initialize the prover with a proving key (embed or fetch).
   - `GenerateIdentifyProof(secret, birthYear, challenge)` returns `{ proof, hash }` where `hash` matches the stored commitment.
 
+## npm Package (WASM)
+
+- Location: `npm/`
+- Build: `cd npm && npm run build` (produces `dist/identify.wasm`, `dist/wasm_exec.js`, `dist/user.pk`)
+- Usage:
+
+```js
+import { init } from "identify-sdk-wasm"; // after publishing to npm
+
+const { generateProof } = await init(); // uses bundled wasm + proving key
+const { proof, hash } = generateProof("password123", 2000, 4242);
+```
+
+- Smoke test (Node): `cd npm && npm test` builds dist and generates a proof via WASM.
+
 ## API Reference (Core)
 
 - `server.NewRealSDK()` → `IdentifySDK`
@@ -122,6 +137,7 @@ See the `Makefile` for convenience targets (`make setup`, `make wasm`, `make run
 - CI matrix builds against Go `1.21.x` and `1.22.x` and uploads the WASM artifact per version.
 - Track changes in `CHANGELOG.md`; tag releases (e.g., `v1.0.0`) after regenerating keys if circuits change.
 - If you need to replace the embedded keys after a circuit update, rerun `make setup` and commit `client/user.pk` and `server/user.vk`.
+- Fingerprints: `client.ProvingKeyID()` and `server.VerifyingKeyID()` expose blake2b-256 IDs of embedded keys; `cmd/setup` prints them when regenerating.
 
 ## Security Notes
 
@@ -130,6 +146,7 @@ See the `Makefile` for convenience targets (`make setup`, `make wasm`, `make run
 - Regenerate and commit `client/user.pk` and `server/user.vk` after any circuit change; mismatch will break verification.
 - Configure `CurrentYear` and `LimitAge` via `server.NewRealSDKWithConfig` so policy changes don’t require code rewrites.
 - For production, manage secrets and key rotation through your KMS and rotate proving/verifying keys when circuits evolve.
+- Ensure client and server share the same policy inputs (`currentYear`, `limitAge`); verification will fail on mismatch.
 
 ## Compliance & Observability
 

@@ -30,3 +30,9 @@ jobs:
         with:
           name: identify-wasm-${{ matrix.go-version }}
           path: /tmp/identify.wasm
+
+      - name: npm smoke test (WASM)
+        run: |
+          cd npm
+          npm install
+          npm test

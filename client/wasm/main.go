@@ -39,12 +39,19 @@ func GenerateProofWrapper(this js.Value, p []js.Value) interface{} {
 		return "Error: Prover not initialized"
 	}
 
+	if len(p) < 6 {
+		return "Error: expected args (secret, birthYear, currentYear, limitAge, challenge, saltHex)"
+	}
+
 	secret := p[0].String()
 	birth := p[1].Int()
-	challenge := p[2].Int()
+	currentYear := p[2].Int()
+	limitAge := p[3].Int()
+	challenge := p[4].Int()
+	saltHex := p[5].String()
 
 	// Go 함수 호출
-	proofBytes, pubHash, err := prover.GenerateProof(secret, birth, 2025, 20, challenge)
+	proofBytes, pubHash, binding, err := prover.GenerateProof(secret, birth, currentYear, limitAge, challenge, saltHex)
 	if err != nil {
 		return "Error: " + err.Error()
 	}
@@ -52,8 +59,13 @@ func GenerateProofWrapper(this js.Value, p []js.Value) interface{} {
 	proofHex := hex.EncodeToString(proofBytes)
 
 	result := map[string]interface{}{
-		"proof": proofHex,
-		"hash":  pubHash,
+		"proof":      proofHex,
+		"hash":       pubHash,
+		"binding":    binding,
+		"salt":       saltHex,
+		"pkId":       client.ProvingKeyID(),
+		"policyYear": currentYear,
+		"limitAge":   limitAge,
 	}
 	return js.ValueOf(result)
 }

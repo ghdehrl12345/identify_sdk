@@ -3,83 +3,72 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/ghdehrl12345/identify_sdk/client"
+	"github.com/ghdehrl12345/identify_sdk/common"
 	"github.com/ghdehrl12345/identify_sdk/server"
 )
 
 func main() {
-	fmt.Println("=== 🍺 주류 쇼핑몰 통합 시스템 가동 (보안 강화 버전) ===")
+	fmt.Println("=== 🍺 주류 쇼핑몰 통합 시스템 가동 (정책/암호화 설정 적용) ===")
 
-	// 1. 서버 SDK 초기화 (Real 엔진 사용)
-	// 임베딩된 user.vk 데이터를 사용하여 검증 준비
-	srv, err := server.NewRealSDK()
+	shared := common.SharedConfig{
+		TargetYear:      2025,
+		LimitAge:        20,
+		ArgonMemory:     common.ArgonMemory,
+		ArgonIterations: common.ArgonIterations,
+	}
+	deliveryKeyPath := os.Getenv("DELIVERY_PUBLIC_KEY_PATH") // PEM RSA 공개키 경로
+
+	// 서버 SDK 초기화 (정책 + RSA 공개키)
+	srv, err := server.NewRealSDKWithConfig(server.RealIdentifyConfig{
+		Config:                shared,
+		DeliveryPublicKeyPath: deliveryKeyPath,
+	})
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("✅ [Server] ZKP 검증 엔진 로드 완료")
 
-	// 2. 클라이언트 SDK 초기화 (Prover)
-	// 임베딩된 user.pk 데이터를 사용하여 증명 준비
-	cli, err := client.NewUserProver()
+	// 클라이언트 SDK 초기화 (서버와 동일한 정책)
+	cli, err := client.NewUserProverWithPolicy(client.DefaultPolicy(), shared)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("✅ [Client] ZKP 증명 엔진 로드 완료")
 
-	// --- [시나리오 시작] ---
-
-	// 사용자 정보 (내 기기 속에만 있는 비밀)
 	mySecret := "password123"
-	myBirth := 2000 // 성인 (2025년 기준 25세)
+	myBirth := 2000
+	salt, _ := client.GenerateSalt()
 
-	// =========================================================
-	// Step A: 회원가입 (Commitment 생성)
-	// =========================================================
-	// 클라이언트가 비밀번호의 해시값만 계산해서 서버에 보냄
-	myCommitment := cli.CalculateCommitment(mySecret)
-	fmt.Printf("\n[1] 회원가입 요청: 해시값(%s...) 전송\n", myCommitment[:10])
+	commitment, _, _ := client.ComputeCommitmentAndBinding(mySecret, salt, 0, shared)
+	fmt.Printf("\n[1] 회원가입 요청: 해시값(%s...) 전송 (salt=%s)\n", commitment[:10], salt)
 
-	// 서버는 이 해시값만 DB에 저장 (비밀번호 원본은 절대 모름)
-	serverDB_Commitment := myCommitment
+	serverDBCommitment := commitment
+	serverDBSalt := salt
 	fmt.Println("   -> 서버 DB 저장 완료")
 
-	// =========================================================
-	// Step B: 로그인 시도 (챌린지-응답 프로세스)
-	// =========================================================
 	fmt.Println("\n[2] 로그인 시도 시작")
-
-	// 1. 서버: 랜덤 챌린지 발급 ("자, 이 숫자 섞어서 증명해봐")
-	// 매번 다른 숫자가 나오므로 해커가 옛날 증명서를 재사용할 수 없음
 	rand.Seed(time.Now().UnixNano())
 	serverChallenge := rand.Intn(99999)
 	fmt.Printf("   -> [Server] 챌린지 발급: %d\n", serverChallenge)
 
-	// 2. 클라이언트: 챌린지를 포함하여 증명서 생성
-	// 입력: 비밀번호, 생년월일, 현재연도, 기준나이, **서버챌린지**
 	fmt.Println("   -> [Client] 증명서(Proof) 생성 중...")
-	proofBytes, proofPublicHash, err := cli.GenerateProof(mySecret, myBirth, 2025, 20, serverChallenge)
+	proofBytes, proofPublicHash, _, err := cli.GenerateProof(mySecret, myBirth, shared.TargetYear, shared.LimitAge, serverChallenge, serverDBSalt)
 	if err != nil {
 		panic("증명 생성 실패: " + err.Error())
 	}
 	fmt.Printf("   -> 증명서 생성 완료 (%d bytes)\n", len(proofBytes))
 
-	// =========================================================
-	// Step C: 서버 검증 (Verify)
-	// =========================================================
 	fmt.Println("\n[3] 서버 검증 시작")
-
-	// 1. 해시값 일치 여부 확인 (클라이언트가 보낸 공개 입력값 vs DB 값)
-	if proofPublicHash != serverDB_Commitment {
+	if proofPublicHash != serverDBCommitment {
 		fmt.Println("❌ 해시 불일치: 등록된 사용자가 아닙니다.")
 		return
 	}
 
-	// 2. 영지식 증명 검증 (VerifyLogin)
-	// 서버는 "내가 방금 보낸 챌린지(serverChallenge)"가 맞는지까지 수학적으로 확인함
-	isLogin, err := srv.VerifyLogin(proofBytes, serverDB_Commitment, serverChallenge)
-
+	isLogin, err := srv.VerifyLogin(proofBytes, serverDBCommitment, serverDBSalt, serverChallenge)
 	if err != nil {
 		fmt.Printf("❌ 검증 에러: %v\n", err)
 	} else if isLogin {
@@ -87,4 +76,13 @@ func main() {
 	} else {
 		fmt.Println("❌ [실패] 검증 거부됨 (비밀번호 틀림, 미성년자, 혹은 챌린지 불일치)")
 	}
+
+	userAddr := "서울시 강남구 테헤란로 123"
+	secureAddr, err := srv.EncryptDeliveryInfo(userAddr)
+	if err != nil {
+		fmt.Printf("❌ 배송 정보 암호화 실패: %v\n", err)
+	} else {
+		fmt.Printf("[배송] 암호화된 주소(Base64): %s\n", secureAddr)
+	}
+	fmt.Println("=== 상황 종료 ===")
 }

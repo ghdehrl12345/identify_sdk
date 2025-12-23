@@ -46,6 +46,7 @@ html/user.pk       # 복사된 키 파일 제외
 # 4. Web/Wasm Artifacts
 # -----------------------------------
 client/node_modules/
+npm/node_modules/
 client/dist/
 client/wasm/dist/
 html/identify.wasm # 빌드된 WASM 파일은 소스가 아니므로 제외
@@ -57,3 +58,5 @@ html/identify.wasm # 빌드된 WASM 파일은 소스가 아니므로 제외
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+*.pem

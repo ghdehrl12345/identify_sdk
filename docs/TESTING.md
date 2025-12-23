@@ -14,6 +14,10 @@
 - `make wasm` builds `html/identify.wasm`.
 - `make serve` to host `html/` locally; open the page and exercise `InitIdentify` and `GenerateIdentifyProof` to validate the browser path.
 
+## WASM Smoke Test (Node)
+
+- `cd npm && npm test` runs a Node-based smoke test that builds `dist/` and generates a proof via WASM.
+
 ## Property / Regression Ideas
 
 - Randomize challenges across a wider range and assert mismatched challenges always fail verification.
