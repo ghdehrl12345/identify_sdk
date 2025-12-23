@@ -1,158 +1,141 @@
-# Identify SDK
+# Identify SDK v2.0
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/ghdehrl12345/identify_sdk)](https://goreportcard.com/report/github.com/ghdehrl12345/identify_sdk)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
-[![Version](https://img.shields.io/badge/version-v1.0.0-green.svg)](https://github.com/ghdehrl12345/identify_sdk/releases)
+[![Version](https://img.shields.io/badge/version-v2.0.0-green.svg)](https://github.com/ghdehrl12345/identify_sdk/releases)
 
-Identify SDK is a zero-knowledge authentication toolkit that lets shopping malls and fintech services verify users without collecting passwords or birthdays. The SDK combines MiMC commitments with Groth16 proofs to deliver **No-DB** passwordless login, anonymous age verification, and WASM-ready clients while keeping user secrets on their device.
+**프라이버시 중심 보안 라이브러리**로, 홈쇼핑, SNS, 핀테크 등 다양한 프로젝트에서 필요한 보안 기능만 선택적으로 사용할 수 있습니다.
 
-## Installation
+## 주요 기능
+
+| 모듈 | 기능 | 사용 예시 |
+|------|------|----------|
+| `auth` | ZKP 기반 비밀번호 없는 로그인 | 모든 서비스 |
+| `age` | 익명 성인 인증 | 주류/담배 쇼핑몰 |
+| `crypto` | 배송정보/콘텐츠 암호화, 데이터 마스킹 | 이커머스, SNS DM |
+| `commitment` | MiMC 해시 커밋먼트 | 인증 기반 서비스 |
+| `audit` | 감사 로깅 | 금융/의료 서비스 |
+
+## 설치
 
 ```bash
 go get github.com/ghdehrl12345/identify_sdk@latest
 ```
 
-All module imports must use the full path (e.g. `github.com/ghdehrl12345/identify_sdk/server`).
+## 프로젝트별 사용 예시
 
-## Quick Start (Server)
-
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/ghdehrl12345/identify_sdk/server"
-)
-
-func main() {
-	sdk, err := server.NewRealSDK()
-	if err != nil {
-		panic(err)
-	}
-
-	ok, err := sdk.VerifyLogin([]byte("fake-proof"), "1234567890", 4242)
-	if err != nil {
-		fmt.Println("verify failed:", err)
-		return
-	}
-	fmt.Println("login result:", ok)
-}
-```
-
-`server.NewRealSDK` loads the embedded verifying key, so no external files are needed once `client/user.pk` and `server/user.vk` are committed.
-
-## Quick Start (Client)
+### 🛒 홈쇼핑: 로그인 + 배송 암호화
 
 ```go
-package main
-
 import (
-	"fmt"
-
-	"github.com/ghdehrl12345/identify_sdk/client"
+    "github.com/ghdehrl12345/identify_sdk/auth"
+    "github.com/ghdehrl12345/identify_sdk/crypto"
 )
 
-func main() {
-	prover, err := client.NewUserProver()
-	if err != nil {
-		panic(err)
-	}
+// 서버: 로그인 검증
+verifier, _ := auth.NewVerifier()
+ok, _ := verifier.VerifyLogin(proofBytes, commitment, salt, challenge)
 
-	proof, commitment, err := prover.GenerateProof("password123", 2000, 2025, 20, 4242)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("proof bytes=%d, commitment=%s\n", len(proof), commitment)
-}
+// 배송 정보 암호화
+encryptor, _ := crypto.NewDeliveryEncryptorFromEnv()
+encrypted, _ := encryptor.Encrypt("서울시 강남구 테헤란로 123")
 ```
 
-The client compiles the circuit, loads the embedded proving key, and returns both the serialized proof and the MiMC commitment that should be stored in your database.
+### 📱 SNS: 로그인 + 성인 인증 + DM 암호화
 
-## Browser / WASM Integration
+```go
+import (
+    "github.com/ghdehrl12345/identify_sdk/auth"
+    "github.com/ghdehrl12345/identify_sdk/age"
+    "github.com/ghdehrl12345/identify_sdk/crypto"
+)
 
-- Build the WASM bundle: `GOOS=js GOARCH=wasm go build -o html/identify.wasm github.com/ghdehrl12345/identify_sdk/client/wasm`
-- Serve the `html/` folder (e.g., `make serve`) and load `wasm_exec.js` + `identify.wasm` in your page.
-- JavaScript API:
-  - `InitIdentify(pkBytes)` to initialize the prover with a proving key (embed or fetch).
-  - `GenerateIdentifyProof(secret, birthYear, challenge)` returns `{ proof, hash }` where `hash` matches the stored commitment.
+// 성인 인증
+ageVerifier, _ := age.NewVerifier()
+isAdult, _ := ageVerifier.VerifyAge(ageProof)
 
-## npm Package (WASM)
-
-- Location: `npm/`
-- Build: `cd npm && npm run build` (produces `dist/identify.wasm`, `dist/wasm_exec.js`, `dist/user.pk`)
-- Usage:
-
-```js
-import { init } from "identify-sdk-wasm"; // after publishing to npm
-
-const { generateProof } = await init(); // uses bundled wasm + proving key
-const { proof, hash } = generateProof("password123", 2000, 4242);
+// DM 암호화
+content := crypto.NewContentEncryptor()
+key, _ := crypto.GenerateKey()
+ciphertext, _ := content.Encrypt([]byte("비밀 메시지"), key)
 ```
 
-- Smoke test (Node): `cd npm && npm test` builds dist and generates a proof via WASM.
+### 🏦 핀테크: 로그인 + 감사 로깅
 
-## API Reference (Core)
+```go
+import (
+    "github.com/ghdehrl12345/identify_sdk/auth"
+    "github.com/ghdehrl12345/identify_sdk/audit"
+)
 
-- `server.NewRealSDK()` → `IdentifySDK`
-- `IdentifySDK.CreateCommitment(secret string)` → MiMC commitment string for storage.
-- `IdentifySDK.VerifyLogin(proof []byte, publicCommitment string, challenge int)` → `bool`, validates password + age + challenge binding.
-- `client.NewUserProver()` → prover with embedded `client/user.pk`.
-- `prover.GenerateProof(secret string, birthYear, currentYear, limitAge, challenge int)` → `proofBytes, commitment`.
+// 감사 로거 설정
+logger, _ := audit.NewJSONLoggerToFile("/var/log/audit.json")
 
-## Architecture
-
-```
-+------------------+        Challenge/Proof        +-----------------+
-|  Frontend / WASM | <---------------------------> |    Client SDK   |
-|  (InitIdentify)  |                               | (MiMC + Groth16)|
-+------------------+                               +-----------------+
-                                                      |
-                                                      | Proof, Public Hash
-                                                      v
-                                              +-----------------+
-                                              |    Server SDK   |
-                                              | (VerifyLogin)   |
-                                              +-----------------+
-                                                      |
-                                                      | On-chain optional verifier
-                                                      v
-                                              +-----------------+
-                                              | Blockchain /   |
-                                              | Compliance Log |
-                                              +-----------------+
+// 로그인 시도 기록
+verifier, _ := auth.NewVerifier()
+ok, err := verifier.VerifyLogin(proofBytes, commitment, salt, challenge)
+logger.LogAuthAttempt(userID, ok, map[string]string{"ip": clientIP})
 ```
 
-## Development Workflow
+## 모듈 구조
 
-- `cmd/setup`: recompiles the circuit and regenerates proving/verifying keys (writes to `client/user.pk` and `server/user.vk` for embedding).
-- `client/wasm`: exposes the prover to JavaScript via WebAssembly.
-- `main.go`: end-to-end scenario for quick validation.
+```
+identify_sdk/
+├── auth/           # ZKP 인증 (필수)
+│   ├── prover.go   # 클라이언트: 증명 생성
+│   └── verifier.go # 서버: 증명 검증
+├── age/            # 성인 인증 (선택)
+│   ├── prover.go
+│   └── verifier.go
+├── crypto/         # 암호화 유틸리티 (선택)
+│   ├── delivery.go # RSA-OAEP 배송정보 암호화
+│   ├── content.go  # AES-256-GCM 콘텐츠 암호화
+│   └── masking.go  # 데이터 마스킹
+├── commitment/     # MiMC 해시 (공통)
+│   └── mimc.go
+├── audit/          # 감사 로깅 (선택)
+│   └── logger.go
+└── common/         # 공유 설정
+    └── config.go
+```
 
-See the `Makefile` for convenience targets (`make setup`, `make wasm`, `make run`, `make serve`, `make clean`).
+## 마이그레이션 가이드 (v1 → v2)
 
-## Release & Compatibility
+### Import 경로 변경
 
-- CI matrix builds against Go `1.21.x` and `1.22.x` and uploads the WASM artifact per version.
-- Track changes in `CHANGELOG.md`; tag releases (e.g., `v1.0.0`) after regenerating keys if circuits change.
-- If you need to replace the embedded keys after a circuit update, rerun `make setup` and commit `client/user.pk` and `server/user.vk`.
-- Fingerprints: `client.ProvingKeyID()` and `server.VerifyingKeyID()` expose blake2b-256 IDs of embedded keys; `cmd/setup` prints them when regenerating.
+```diff
+-import "github.com/ghdehrl12345/identify_sdk/server"
+-import "github.com/ghdehrl12345/identify_sdk/client"
++import "github.com/ghdehrl12345/identify_sdk/auth"
++import "github.com/ghdehrl12345/identify_sdk/age"
+```
 
-## Security Notes
+### 함수명 변경
 
-- Proofs bind to a server-issued `challenge` to prevent replay attacks; always issue a fresh challenge per login.
-- Secrets and birth years never leave the client; only commitments and proofs are transmitted.
-- Regenerate and commit `client/user.pk` and `server/user.vk` after any circuit change; mismatch will break verification.
-- Configure `CurrentYear` and `LimitAge` via `server.NewRealSDKWithConfig` so policy changes don’t require code rewrites.
-- For production, manage secrets and key rotation through your KMS and rotate proving/verifying keys when circuits evolve.
-- Ensure client and server share the same policy inputs (`currentYear`, `limitAge`); verification will fail on mismatch.
+```diff
+-sdk, _ := server.NewRealSDK()
+-ok, _ := sdk.VerifyLogin(proof, commitment, salt, challenge)
++verifier, _ := auth.NewVerifier()
++ok, _ := verifier.VerifyLogin(proof, commitment, salt, challenge)
+```
 
-## Compliance & Observability
+## 보안 노트
 
-- See `SECURITY.md` for reporting channels and operational notes.
-- Consider SBOM and license scans in your CI pipeline; publish WASM artifacts from CI for transparency.
-- Add structured logging around verification results and integrate with your SIEM/monitoring stack.***
+- ⚠️ **Argon2 iteration**이 v2.0에서 1→3으로 강화됨. 기존 commitment는 재생성 필요.
+- ⚠️ **PEM 키 파일**은 환경변수 또는 KMS로 관리. 저장소에 커밋 금지.
+- 챌린지는 매 로그인마다 새로 발급하여 Replay Attack 방어.
+- 클라이언트와 서버 간 정책(currentYear, limitAge) 동기화 필수.
+
+## 테스트
+
+```bash
+# 전체 테스트
+go test ./... -v
+
+# 특정 모듈 테스트
+go test ./crypto/... -v
+go test ./auth/... -v
+```
 
 ## License
 
