@@ -185,7 +185,7 @@ func (r *RealIdentify) VerifyAge(proof []byte) (bool, error) {
 // EncryptDeliveryInfo encrypts the address using RSA-OAEP with SHA-256.
 func (r *RealIdentify) EncryptDeliveryInfo(address string) (string, error) {
 	if r.deliveryPub == nil {
-		return "", fmt.Errorf("배송 공개키가 설정되어 있지 않습니다 (DELIVERY_PUBLIC_KEY_PATH/PEM)")
+		return "", fmt.Errorf("public key not configured")
 	}
 	cipher, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, r.deliveryPub, []byte(address), nil)
 	if err != nil {

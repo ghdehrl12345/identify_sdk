@@ -181,6 +181,39 @@ func (u *UserProver) GenerateProof(secret string, birthYear int, currentYear int
 	return buf.Bytes(), commitment, binding, nil
 }
 
+// GenerateAgeProof creates a proof for AgeCircuit (CurrentYear - BirthYear >= LimitAge).
+func (u *UserProver) GenerateAgeProof(birthYear int, currentYear int, limitAge int) ([]byte, error) {
+	if limitAge == 0 {
+		limitAge = u.policy.MinimumAge
+	}
+	if currentYear == 0 {
+		currentYear = u.config.TargetYear
+	}
+
+	var publicCurr big.Int
+	publicCurr.SetInt64(int64(currentYear))
+	var publicLimit big.Int
+	publicLimit.SetInt64(int64(limitAge))
+
+	assignment := circuits.AgeCircuit{
+		CurrentYear: publicCurr,
+		LimitAge:    publicLimit,
+		BirthYear:   birthYear,
+	}
+
+	witness, err := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
+	if err != nil {
+		return nil, fmt.Errorf("Age 위트니스 생성 실패: %v", err)
+	}
+	proof, err := groth16.Prove(u.ageCCS, u.agePK, witness)
+	if err != nil {
+		return nil, fmt.Errorf("Age 증명 생성 실패: %v", err)
+	}
+	var buf bytes.Buffer
+	proof.WriteTo(&buf)
+	return buf.Bytes(), nil
+}
+
 func GenerateSalt() (string, error) {
 	buf := make([]byte, 16)
 	if _, err := rand.Read(buf); err != nil {
@@ -247,37 +280,4 @@ func blake2bSumHex(data []byte) string {
 	}
 	sum := blake2b.Sum256(data)
 	return hex.EncodeToString(sum[:])
-}
-
-// GenerateAgeProof creates a proof for AgeCircuit (CurrentYear - BirthYear >= LimitAge).
-func (u *UserProver) GenerateAgeProof(birthYear int, currentYear int, limitAge int) ([]byte, error) {
-	if limitAge == 0 {
-		limitAge = u.policy.MinimumAge
-	}
-	if currentYear == 0 {
-		currentYear = u.config.TargetYear
-	}
-
-	var publicCurr big.Int
-	publicCurr.SetInt64(int64(currentYear))
-	var publicLimit big.Int
-	publicLimit.SetInt64(int64(limitAge))
-
-	assignment := circuits.AgeCircuit{
-		CurrentYear: publicCurr,
-		LimitAge:    publicLimit,
-		BirthYear:   birthYear,
-	}
-
-	witness, err := frontend.NewWitness(&assignment, ecc.BN254.ScalarField())
-	if err != nil {
-		return nil, fmt.Errorf("Age 위트니스 생성 실패: %v", err)
-	}
-	proof, err := groth16.Prove(u.ageCCS, u.agePK, witness)
-	if err != nil {
-		return nil, fmt.Errorf("Age 증명 생성 실패: %v", err)
-	}
-	var buf bytes.Buffer
-	proof.WriteTo(&buf)
-	return buf.Bytes(), nil
 }

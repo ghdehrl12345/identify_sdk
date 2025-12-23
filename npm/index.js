@@ -11,7 +11,7 @@ require("./dist/wasm_exec.js");
  * @param {Uint8Array|Buffer} [opts.wasmBytes] - Optional in-memory wasm bytes.
  * @param {string} [opts.provingKeyPath] - Path to user.pk. Defaults to bundled dist/user.pk.
  * @param {Uint8Array|Buffer} [opts.provingKeyBytes] - Optional in-memory proving key.
- * @returns {Promise<{generateProof: (secret: string, birthYear: number, currentYear: number, limitAge: number, challenge: number, saltHex: string) => any}>}
+ * @returns {Promise<IdentifyClient>}
  */
 async function init(opts = {}) {
   const distDir = path.join(__dirname, "dist");
@@ -37,7 +37,7 @@ async function init(opts = {}) {
   if (typeof global.InitIdentify !== "function") {
     throw new Error("InitIdentify function not found on global");
   }
-  const ok = global.InitIdentify(new Uint8Array(pkBytes));
+  const ok = global.InitIdentify(new Uint8Array(pkBytes), opts.config || {});
   if (ok !== true) {
     throw new Error("InitIdentify failed");
   }
@@ -45,33 +45,30 @@ async function init(opts = {}) {
     throw new Error("GenerateIdentifyProof function not found on global");
   }
 
-  const generateProof = (
-    secret,
-    birthYear,
-    currentYear,
-    limitAge,
-    challenge,
-    saltHex
-  ) => {
-    const res = global.GenerateIdentifyProof(
-      secret,
-      birthYear,
-      currentYear,
-      limitAge,
-      challenge,
-      saltHex
-    );
+  return new IdentifyClient();
+}
+
+class IdentifyClient {
+  generateProof(secret, birthYear, config, challenge, saltHex) {
+    const cfg = config || {};
+    const res = global.GenerateIdentifyProof(secret, birthYear, cfg, challenge || 0, saltHex || "");
     if (typeof res === "string" && res.startsWith("Error")) {
       throw new Error(res);
     }
-    // include key/policy metadata for caller-side versioning
     res.pkId = res.pkId || undefined;
-    res.policyYear = res.policyYear || currentYear;
-    res.limitAge = res.limitAge || limitAge;
+    res.policyYear = res.policyYear || cfg.targetYear || cfg.currentYear;
+    res.limitAge = res.limitAge || cfg.limitAge;
     return res;
-  };
+  }
 
-  return { generateProof };
+  generateAgeProof(birthYear, config) {
+    const cfg = config || {};
+    const res = global.GenerateAgeProof(birthYear, cfg);
+    if (typeof res === "string" && res.startsWith("Error")) {
+      throw new Error(res);
+    }
+    return res;
+  }
 }
 
-module.exports = { init };
+module.exports = { init, IdentifyClient };
