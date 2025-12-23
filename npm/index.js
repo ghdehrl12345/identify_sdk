@@ -11,7 +11,7 @@ require("./dist/wasm_exec.js");
  * @param {Uint8Array|Buffer} [opts.wasmBytes] - Optional in-memory wasm bytes.
  * @param {string} [opts.provingKeyPath] - Path to user.pk. Defaults to bundled dist/user.pk.
  * @param {Uint8Array|Buffer} [opts.provingKeyBytes] - Optional in-memory proving key.
- * @returns {Promise<{generateProof: (secret: string, birthYear: number, challenge: number) => any}>}
+ * @returns {Promise<{generateProof: (secret: string, birthYear: number, currentYear: number, limitAge: number, challenge: number, saltHex: string) => any}>}
  */
 async function init(opts = {}) {
   const distDir = path.join(__dirname, "dist");
@@ -45,11 +45,29 @@ async function init(opts = {}) {
     throw new Error("GenerateIdentifyProof function not found on global");
   }
 
-  const generateProof = (secret, birthYear, challenge) => {
-    const res = global.GenerateIdentifyProof(secret, birthYear, challenge);
+  const generateProof = (
+    secret,
+    birthYear,
+    currentYear,
+    limitAge,
+    challenge,
+    saltHex
+  ) => {
+    const res = global.GenerateIdentifyProof(
+      secret,
+      birthYear,
+      currentYear,
+      limitAge,
+      challenge,
+      saltHex
+    );
     if (typeof res === "string" && res.startsWith("Error")) {
       throw new Error(res);
     }
+    // include key/policy metadata for caller-side versioning
+    res.pkId = res.pkId || undefined;
+    res.policyYear = res.policyYear || currentYear;
+    res.limitAge = res.limitAge || limitAge;
     return res;
   };
 

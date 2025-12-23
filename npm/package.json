@@ -12,7 +12,7 @@
   "scripts": {
     "build": "node scripts/build.js",
     "prepublishOnly": "npm run build",
-    "test": "echo \"No JS tests yet\""
+    "test": "node scripts/smoke.js"
   },
   "engines": {
     "node": ">=18"
