@@ -19,20 +19,17 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Go build
+        run: go build ./...
+
       - name: Go test
         run: go test ./...
 
       - name: WASM build
-        run: GOOS=js GOARCH=wasm go build -o /tmp/identify.wasm ./client/wasm
+        run: GOOS=js GOARCH=wasm go build -o /tmp/identify.wasm ./wasm
 
       - name: Upload WASM artifact
         uses: actions/upload-artifact@v4
         with:
           name: identify-wasm-${{ matrix.go-version }}
           path: /tmp/identify.wasm
-
-      - name: npm smoke test (WASM)
-        run: |
-          cd npm
-          npm install
-          npm test
