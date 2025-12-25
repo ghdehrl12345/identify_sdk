@@ -35,7 +35,7 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Generate compliance artifacts
-        run: ./scripts/compliance.sh
+        run: bash ./scripts/compliance.sh
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
