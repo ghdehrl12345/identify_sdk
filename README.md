@@ -126,6 +126,34 @@ identify_sdk/
 - 챌린지는 매 로그인마다 새로 발급하여 Replay Attack 방어.
 - 클라이언트와 서버 간 정책(currentYear, limitAge) 동기화 필수.
 
+## Stateless Challenge Token (무상태 챌린지)
+
+```go
+import (
+    "time"
+
+    "github.com/ghdehrl12345/identify_sdk/auth"
+    "github.com/ghdehrl12345/identify_sdk/common"
+)
+
+secret := []byte("server-hmac-secret")
+verifier, _ := auth.NewVerifierWithConfig(auth.VerifierConfig{
+    Config:   common.DefaultSharedConfig(),
+    TokenKey: secret,
+})
+
+claims := auth.ChallengeTokenClaims{
+    UserID:        "user-123",
+    Challenge:     4242,
+    ExpiresAt:     time.Now().Add(2 * time.Minute).Unix(),
+    VKID:          auth.VerifyingKeyID(),
+    ParamsVersion: common.ParamsVersion(verifier.GetConfig()),
+}
+token, _ := auth.IssueChallengeToken(secret, claims)
+
+ok, _ := verifier.VerifyLoginWithToken(proofBytes, commitment, salt, token)
+```
+
 ## 테스트
 
 ```bash

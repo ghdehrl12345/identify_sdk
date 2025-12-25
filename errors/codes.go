@@ -51,6 +51,8 @@ var (
 	ErrProofGeneration  = New("E1008", "failed to generate proof")
 	ErrCircuitCompile   = New("E1009", "failed to compile circuit")
 	ErrMissingArguments = New("E1010", "missing required arguments")
+	ErrChallengeExpired = New("E1011", "challenge expired")
+	ErrChallengeInvalid = New("E1012", "challenge token invalid")
 )
 
 // Key/Setup errors (E2xxx)
@@ -76,4 +78,5 @@ var (
 	ErrConfigNotFound = New("E4001", "configuration not found")
 	ErrPolicyMismatch = New("E4002", "client/server policy mismatch")
 	ErrInvalidConfig  = New("E4003", "invalid configuration")
+	ErrTokenKeyMissing = New("E4004", "challenge token key not configured")
 )

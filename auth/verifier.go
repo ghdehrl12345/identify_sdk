@@ -6,12 +6,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/ghdehrl12345/identify_sdk/commitment"
 	"github.com/ghdehrl12345/identify_sdk/common"
+	sdkerrors "github.com/ghdehrl12345/identify_sdk/errors"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -25,12 +27,14 @@ var EmbeddedVerifyingKeyID = blake2bVerifierSumHex(verifyingKeyData)
 type Verifier struct {
 	verifyingKey groth16.VerifyingKey
 	config       common.SharedConfig
+	tokenKey     []byte
 }
 
 // VerifierConfig holds configuration for the verifier.
 type VerifierConfig struct {
 	Config     common.SharedConfig
 	ExpectedVK string // optional: expected verifying key fingerprint
+	TokenKey   []byte // optional: HMAC key for stateless challenge tokens
 }
 
 // NewVerifier creates a verifier with default config.
@@ -54,6 +58,7 @@ func NewVerifierWithConfig(cfg VerifierConfig) (*Verifier, error) {
 	return &Verifier{
 		verifyingKey: vk,
 		config:       pickSharedConfig(cfg.Config),
+		tokenKey:     cfg.TokenKey,
 	}, nil
 }
 
@@ -112,6 +117,20 @@ func (v *Verifier) VerifyLogin(proofBytes []byte, publicCommitment string, salt 
 	}
 
 	return true, nil
+}
+
+// VerifyLoginWithToken validates a stateless challenge token and verifies the proof.
+func (v *Verifier) VerifyLoginWithToken(proofBytes []byte, publicCommitment string, salt string, challengeToken string) (bool, error) {
+	if len(v.tokenKey) == 0 {
+		return false, sdkerrors.ErrTokenKeyMissing
+	}
+	expectedVK := VerifyingKeyID()
+	expectedParams := common.ParamsVersion(v.config)
+	claims, err := ValidateChallengeToken(challengeToken, v.tokenKey, time.Now(), expectedVK, expectedParams)
+	if err != nil {
+		return false, err
+	}
+	return v.VerifyLogin(proofBytes, publicCommitment, salt, claims.Challenge)
 }
 
 // GetConfig returns the shared configuration.

@@ -12,6 +12,12 @@ type Authenticator interface {
 	GetConfig() common.SharedConfig
 }
 
+// StatelessAuthenticator defines an interface for stateless challenge verification.
+type StatelessAuthenticator interface {
+	// VerifyLoginWithToken validates a stateless challenge token and verifies the proof.
+	VerifyLoginWithToken(proof []byte, publicCommitment string, salt string, challengeToken string) (bool, error)
+}
+
 // Prover defines the interface for generating ZKP proofs on the client side.
 type Prover interface {
 	// CalculateCommitment derives a commitment with a random salt.
