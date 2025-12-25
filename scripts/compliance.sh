@@ -9,7 +9,7 @@ VULN_DIR="${ROOT_DIR}/vuln"
 mkdir -p "${SBOM_DIR}" "${LICENSE_DIR}" "${VULN_DIR}"
 
 if command -v cyclonedx-gomod >/dev/null 2>&1; then
-  cyclonedx-gomod mod -licenses -output "${SBOM_DIR}/cyclonedx.json" -type json
+  cyclonedx-gomod mod -licenses -output "${SBOM_DIR}/cyclonedx.json" -type library
 else
   go list -m -json all > "${SBOM_DIR}/go-modules.json"
 fi
