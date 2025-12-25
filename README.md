@@ -19,7 +19,7 @@
 ## 설치
 
 ```bash
-go get github.com/ghdehrl12345/identify_sdk@latest
+go get github.com/ghdehrl12345/identify_sdk/v2@v2.0.3
 ```
 
 ## 프로젝트별 사용 예시

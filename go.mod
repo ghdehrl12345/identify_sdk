@@ -1,4 +1,4 @@
-module github.com/ghdehrl12345/identify_sdk
+module github.com/ghdehrl12345/identify_sdk/v2
 
 go 1.25.5
 
