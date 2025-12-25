@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/ghdehrl12345/identify_sdk/common"
+import "github.com/ghdehrl12345/identify_sdk/v2/common"
 
 // ProofVersion is the semantic version for authentication proofs.
 const ProofVersion = "auth-proof-v1"

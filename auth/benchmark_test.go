@@ -3,7 +3,7 @@ package auth
 import (
 	"testing"
 
-	"github.com/ghdehrl12345/identify_sdk/common"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
 )
 
 func BenchmarkVerifyLogin(b *testing.B) {

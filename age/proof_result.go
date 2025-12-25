@@ -1,6 +1,6 @@
 package age
 
-import "github.com/ghdehrl12345/identify_sdk/common"
+import "github.com/ghdehrl12345/identify_sdk/v2/common"
 
 // ProofVersion is the semantic version for age proofs.
 const ProofVersion = "age-proof-v1"

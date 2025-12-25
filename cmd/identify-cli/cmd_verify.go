@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ghdehrl12345/identify_sdk/auth"
-	"github.com/ghdehrl12345/identify_sdk/common"
+	"github.com/ghdehrl12345/identify_sdk/v2/auth"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
 )
 
 func cmdVerify(args []string) {

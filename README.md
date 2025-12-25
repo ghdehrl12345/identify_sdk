@@ -1,8 +1,8 @@
 # Identify SDK v2.0
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/ghdehrl12345/identify_sdk)](https://goreportcard.com/report/github.com/ghdehrl12345/identify_sdk)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ghdehrl12345/identify_sdk/v2)](https://goreportcard.com/report/github.com/ghdehrl12345/identify_sdk/v2)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
-[![Version](https://img.shields.io/badge/version-v2.0.0-green.svg)](https://github.com/ghdehrl12345/identify_sdk/releases)
+[![Version](https://img.shields.io/badge/version-v2.0.0-green.svg)](https://github.com/ghdehrl12345/identify_sdk/v2/releases)
 
 **프라이버시 중심 보안 라이브러리**로, 홈쇼핑, SNS, 핀테크 등 다양한 프로젝트에서 필요한 보안 기능만 선택적으로 사용할 수 있습니다.
 
@@ -28,8 +28,8 @@ go get github.com/ghdehrl12345/identify_sdk/v2@v2.0.3
 
 ```go
 import (
-    "github.com/ghdehrl12345/identify_sdk/auth"
-    "github.com/ghdehrl12345/identify_sdk/crypto"
+    "github.com/ghdehrl12345/identify_sdk/v2/auth"
+    "github.com/ghdehrl12345/identify_sdk/v2/crypto"
 )
 
 // 서버: 로그인 검증
@@ -45,9 +45,9 @@ encrypted, _ := encryptor.Encrypt("서울시 강남구 테헤란로 123")
 
 ```go
 import (
-    "github.com/ghdehrl12345/identify_sdk/auth"
-    "github.com/ghdehrl12345/identify_sdk/age"
-    "github.com/ghdehrl12345/identify_sdk/crypto"
+    "github.com/ghdehrl12345/identify_sdk/v2/auth"
+    "github.com/ghdehrl12345/identify_sdk/v2/age"
+    "github.com/ghdehrl12345/identify_sdk/v2/crypto"
 )
 
 // 성인 인증
@@ -64,8 +64,8 @@ ciphertext, _ := content.Encrypt([]byte("비밀 메시지"), key)
 
 ```go
 import (
-    "github.com/ghdehrl12345/identify_sdk/auth"
-    "github.com/ghdehrl12345/identify_sdk/audit"
+    "github.com/ghdehrl12345/identify_sdk/v2/auth"
+    "github.com/ghdehrl12345/identify_sdk/v2/audit"
 )
 
 // 감사 로거 설정
@@ -104,10 +104,10 @@ identify_sdk/
 ### Import 경로 변경
 
 ```diff
--import "github.com/ghdehrl12345/identify_sdk/server"
--import "github.com/ghdehrl12345/identify_sdk/client"
-+import "github.com/ghdehrl12345/identify_sdk/auth"
-+import "github.com/ghdehrl12345/identify_sdk/age"
+-import "github.com/ghdehrl12345/identify_sdk/v2/server"
+-import "github.com/ghdehrl12345/identify_sdk/v2/client"
++import "github.com/ghdehrl12345/identify_sdk/v2/auth"
++import "github.com/ghdehrl12345/identify_sdk/v2/age"
 ```
 
 ### 함수명 변경
@@ -133,8 +133,8 @@ identify_sdk/
 import (
     "time"
 
-    "github.com/ghdehrl12345/identify_sdk/auth"
-    "github.com/ghdehrl12345/identify_sdk/common"
+    "github.com/ghdehrl12345/identify_sdk/v2/auth"
+    "github.com/ghdehrl12345/identify_sdk/v2/common"
 )
 
 secret := []byte("server-hmac-secret")

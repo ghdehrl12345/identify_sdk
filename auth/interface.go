@@ -1,6 +1,6 @@
 package auth
 
-import "github.com/ghdehrl12345/identify_sdk/common"
+import "github.com/ghdehrl12345/identify_sdk/v2/common"
 
 // Authenticator defines the interface for ZKP-based authentication.
 type Authenticator interface {

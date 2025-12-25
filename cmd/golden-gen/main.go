@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ghdehrl12345/identify_sdk/age"
-	"github.com/ghdehrl12345/identify_sdk/auth"
-	"github.com/ghdehrl12345/identify_sdk/common"
+	"github.com/ghdehrl12345/identify_sdk/v2/age"
+	"github.com/ghdehrl12345/identify_sdk/v2/auth"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
 )
 
 type authGolden struct {

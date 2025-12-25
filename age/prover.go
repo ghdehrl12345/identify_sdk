@@ -12,7 +12,7 @@ import (
 	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
-	"github.com/ghdehrl12345/identify_sdk/common"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
 	"golang.org/x/crypto/blake2b"
 )
 

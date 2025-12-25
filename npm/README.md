@@ -82,11 +82,11 @@ import { init, Config, ProofResult } from 'identify-sdk';
 Use the Go SDK for server-side verification:
 
 ```bash
-go get github.com/ghdehrl12345/identify_sdk@latest
+go get github.com/ghdehrl12345/identify_sdk/v2@latest
 ```
 
 ```go
-import "github.com/ghdehrl12345/identify_sdk/auth"
+import "github.com/ghdehrl12345/identify_sdk/v2/auth"
 
 verifier, _ := auth.NewVerifier()
 ok, _ := verifier.VerifyLogin(proofBytes, commitment, salt, challenge)

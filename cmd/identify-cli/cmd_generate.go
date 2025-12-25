@@ -11,8 +11,8 @@ import (
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
-	"github.com/ghdehrl12345/identify_sdk/age"
-	"github.com/ghdehrl12345/identify_sdk/auth"
+	"github.com/ghdehrl12345/identify_sdk/v2/age"
+	"github.com/ghdehrl12345/identify_sdk/v2/auth"
 )
 
 func cmdGenerateKeys(args []string) {

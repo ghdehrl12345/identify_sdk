@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"github.com/ghdehrl12345/identify_sdk/common"
-	sdkerrors "github.com/ghdehrl12345/identify_sdk/errors"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
+	sdkerrors "github.com/ghdehrl12345/identify_sdk/v2/errors"
 )
 
 // PolicyBundle is a server-provided policy snapshot for client sync.

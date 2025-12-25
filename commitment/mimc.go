@@ -6,7 +6,7 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/mimc"
-	"github.com/ghdehrl12345/identify_sdk/common"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
 	"golang.org/x/crypto/argon2"
 )
 

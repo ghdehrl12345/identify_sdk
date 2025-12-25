@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"github.com/ghdehrl12345/identify_sdk/auth"
-	"github.com/ghdehrl12345/identify_sdk/common"
+	"github.com/ghdehrl12345/identify_sdk/v2/auth"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
 )
 
 var prover *auth.UserProver

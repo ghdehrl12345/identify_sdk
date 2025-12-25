@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/ghdehrl12345/identify_sdk/auth"
+	"github.com/ghdehrl12345/identify_sdk/v2/auth"
 )
 
 func cmdVersion() {

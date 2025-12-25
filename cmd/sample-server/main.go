@@ -10,10 +10,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/ghdehrl12345/identify_sdk/age"
-	"github.com/ghdehrl12345/identify_sdk/auth"
-	"github.com/ghdehrl12345/identify_sdk/common"
-	sdkerrors "github.com/ghdehrl12345/identify_sdk/errors"
+	"github.com/ghdehrl12345/identify_sdk/v2/age"
+	"github.com/ghdehrl12345/identify_sdk/v2/auth"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
+	sdkerrors "github.com/ghdehrl12345/identify_sdk/v2/errors"
 )
 
 type policyResponse struct {

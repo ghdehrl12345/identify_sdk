@@ -10,8 +10,8 @@ import (
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
-	"github.com/ghdehrl12345/identify_sdk/common"
-	sdkerrors "github.com/ghdehrl12345/identify_sdk/errors"
+	"github.com/ghdehrl12345/identify_sdk/v2/common"
+	sdkerrors "github.com/ghdehrl12345/identify_sdk/v2/errors"
 	"golang.org/x/crypto/blake2b"
 )
 
