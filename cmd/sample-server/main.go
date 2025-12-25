@@ -13,6 +13,7 @@ import (
 	"github.com/ghdehrl12345/identify_sdk/age"
 	"github.com/ghdehrl12345/identify_sdk/auth"
 	"github.com/ghdehrl12345/identify_sdk/common"
+	sdkerrors "github.com/ghdehrl12345/identify_sdk/errors"
 )
 
 type policyResponse struct {
@@ -66,6 +67,10 @@ func main() {
 	cfg := common.DefaultSharedConfig()
 	tokenKey := []byte(os.Getenv("CHALLENGE_TOKEN_KEY"))
 	kid := os.Getenv("CHALLENGE_TOKEN_KID")
+
+	if len(tokenKey) == 0 {
+		log.Fatal("CHALLENGE_TOKEN_KEY is required")
+	}
 
 	verifier, err := auth.NewVerifierWithConfig(auth.VerifierConfig{
 		Config:   cfg,
@@ -176,12 +181,12 @@ func main() {
 		}
 
 		bundle := verifier.PolicyBundle()
-		if req.VKID != "" && req.VKID != bundle.VKID {
-			writeJSON(w, verifyResponse{OK: false, ErrCode: "E2004", ErrMsg: "vk_id mismatch"})
-			return
-		}
-		if req.ParamsVersion != "" && req.ParamsVersion != bundle.ParamsVersion {
-			writeJSON(w, verifyResponse{OK: false, ErrCode: "E4002", ErrMsg: "params_version mismatch"})
+		if err := auth.EnforcePolicy(bundle, req.VKID, req.ParamsVersion); err != nil {
+			code := "E4002"
+			if e, ok := err.(*sdkerrors.Error); ok {
+				code = e.Code
+			}
+			writeJSON(w, verifyResponse{OK: false, ErrCode: code, ErrMsg: err.Error()})
 			return
 		}
 

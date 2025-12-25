@@ -1,6 +1,6 @@
 module github.com/ghdehrl12345/identify_sdk
 
-go 1.23.0
+go 1.25.5
 
 require (
 	github.com/consensys/gnark v0.13.0

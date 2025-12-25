@@ -166,6 +166,10 @@ go test ./crypto/... -v
 go test ./auth/... -v
 ```
 
+## 배포 체크리스트
+
+자세한 절차는 `docs/DEPLOYMENT.md`를 참고하세요.
+
 ## 샘플 서버 (정책/키 메타데이터 연동)
 
 ```bash
