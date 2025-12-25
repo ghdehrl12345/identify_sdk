@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build WASM + npm assets
+        run: make build-all
+
+      - name: Install compliance tools
+        run: |
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+          go install github.com/google/go-licenses@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Generate compliance artifacts
+        run: ./scripts/compliance.sh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: CHANGELOG.md
+          files: |
+            npm/dist/identify.wasm
+            npm/dist/wasm_exec.js
+            npm/dist/user.pk
+            npm/dist/age.pk
+            sbom/**
+            licenses/**
+            vuln/**

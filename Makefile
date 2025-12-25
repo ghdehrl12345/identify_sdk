@@ -3,47 +3,42 @@ GO     ?= go
 GOCACHE ?= $(PWD)/.gocache
 DIST_NPM := npm/dist
 
-.PHONY: setup wasm run serve clean embed npm-prep build-all bench
+.PHONY: setup wasm run clean npm-prep build-all bench compliance golden
 
 clean:
 	@echo ">> Cleaning build artifacts"
-	rm -rf build $(DIST_NPM) html/identify.wasm $(GOCACHE)
+	rm -rf $(DIST_NPM) $(GOCACHE)
 
 setup:
 	@echo ">> Generating proving/verifying keys"
 	GOCACHE=$(GOCACHE) $(GO) run ./cmd/setup
 
-embed:
-	@echo ">> Copying keys for Go embeds"
-	mkdir -p client server
-	cp build/user.pk client/user.pk
-	cp build/user.vk server/user.vk
-	cp build/age.pk client/age.pk
-	cp build/age.vk server/age.vk
-
 wasm:
 	@echo ">> Building WebAssembly prover"
 	mkdir -p $(DIST_NPM)
-	GOCACHE=$(GOCACHE) GOOS=js GOARCH=wasm $(GO) build -o $(DIST_NPM)/identify.wasm ./client/wasm
-	cp $(DIST_NPM)/identify.wasm html/identify.wasm
+	GOCACHE=$(GOCACHE) GOOS=js GOARCH=wasm $(GO) build -o $(DIST_NPM)/identify.wasm ./wasm
 
 npm-prep:
 	@echo ">> Preparing npm/dist assets"
 	mkdir -p $(DIST_NPM)
-	cp html/wasm_exec.js $(DIST_NPM)/
-	cp build/user.pk build/age.pk $(DIST_NPM)/
+	cp "$(shell $(GO) env GOROOT)/lib/wasm/wasm_exec.js" $(DIST_NPM)/
+	cp auth/user.pk age/age.pk $(DIST_NPM)/
 
-build-all: clean setup embed wasm npm-prep
+build-all: clean setup wasm npm-prep
 	@echo ">> All artifacts ready in $(DIST_NPM) and client/server embeds"
 
 run:
-	@echo ">> Running end-to-end demo"
-	GOCACHE=$(GOCACHE) $(GO) run ./main.go
-
-serve:
-	@echo ">> Serving html/ on http://localhost:8080"
-	cd html && python3 -m http.server 8080
+	@echo ">> Running identify-cli help"
+	GOCACHE=$(GOCACHE) $(GO) run ./cmd/identify-cli --help
 
 bench:
 	@echo ">> Running benchmarks"
-	GOCACHE=$(GOCACHE) $(GO) test -bench=. -benchmem ./server
+	GOCACHE=$(GOCACHE) $(GO) test -bench=. -benchmem ./auth ./age ./crypto
+
+compliance:
+	@echo ">> Generating SBOM and license report"
+	./scripts/compliance.sh
+
+golden:
+	@echo ">> Generating golden proofs"
+	GOCACHE=$(GOCACHE) $(GO) run ./cmd/golden-gen

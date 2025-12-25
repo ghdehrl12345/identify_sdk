@@ -62,6 +62,7 @@ var (
 	ErrKeyRead     = New("E2003", "failed to read key file")
 	ErrKeyMismatch = New("E2004", "key fingerprint mismatch")
 	ErrSetupFailed = New("E2005", "setup failed")
+	ErrKeyRotation = New("E2006", "key rotation required")
 )
 
 // Cryptography errors (E3xxx)
@@ -75,8 +76,8 @@ var (
 
 // Configuration errors (E4xxx)
 var (
-	ErrConfigNotFound = New("E4001", "configuration not found")
-	ErrPolicyMismatch = New("E4002", "client/server policy mismatch")
-	ErrInvalidConfig  = New("E4003", "invalid configuration")
+	ErrConfigNotFound  = New("E4001", "configuration not found")
+	ErrPolicyMismatch  = New("E4002", "client/server policy mismatch")
+	ErrInvalidConfig   = New("E4003", "invalid configuration")
 	ErrTokenKeyMissing = New("E4004", "challenge token key not configured")
 )

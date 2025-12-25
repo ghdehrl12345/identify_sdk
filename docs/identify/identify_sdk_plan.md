@@ -13,12 +13,14 @@
 ### Phase 1: 표준화 + 호환성 안정
 - 인코딩/포맷 표준 확정 (HEX vs Base64, 길이 제한)
 - `proof_version`, `vk_id`, `params_version` 포함
+- 서버 정책 스냅샷(PolicyBundle) 제공
 - 테스트 벡터/샘플 E2E 제공 (Go/WASM)
 
 ### Phase 2: Stateless challenge + 운영 안정성
 - 서버 상태 없는 challenge token 지원
 - TTL/리플레이 방지 정책 내장
 - 에러 코드 표준화 (운영 모니터링 가능)
+- HMAC 키 로테이션(kid) 지원
 
 ### Phase 3: 복구/기기 변경 체계
 - Key backup 암호화 API
@@ -47,6 +49,17 @@ interface ProofResult {
   params_version: string;
 }
 
+interface PolicyBundle {
+  config: {
+    target_year: number;
+    limit_age: number;
+    argon_memory: number;
+    argon_iterations: number;
+  };
+  params_version: string;
+  vk_id: string;
+}
+
 interface VerifyResult {
   ok: boolean;
   err_code?: string;
@@ -73,6 +86,13 @@ generateProof(
   salt: Salt
 ): ProofResult;
 
+// 성인 인증 전용 proof 생성
+generateAgeProof(
+  birthYear: number,
+  currentYear: number,
+  limitAge: number
+): ProofResult;
+
 // stateless challenge 토큰을 쓰는 버전 (서버 상태 없음)
 generateProofWithToken(
   secret: string,
@@ -92,6 +112,9 @@ decryptKeyBackup(encrypted: string, pin: string): string;
 // init verifier
 verifier, _ := auth.NewVerifier()
 
+// policy bundle (client sync)
+bundle := verifier.PolicyBundle()
+
 // challenge (stateful)
 challenge, _ := svc.GenerateChallenge(userID)
 
@@ -110,16 +133,17 @@ ok, err := svc.VerifyLoginWithToken(proofBytes, commitment, salt, token)
 - payload: `{ user_id, challenge, exp, nonce, vk_id, params_version }`
 - 서명: HMAC-SHA256 또는 Ed25519
 - 인코딩: base64url
+- 키 로테이션: `kid`로 키 식별
 
 ## 에러 코드 표준 (예시)
-- `AUTH001` invalid_proof
-- `AUTH002` challenge_expired
-- `AUTH003` challenge_invalid
-- `AUTH004` user_not_found
-- `AUTH005` version_mismatch
+- `E1001` invalid proof format
+- `E1003` proof verification failed
+- `E1011` challenge expired
+- `E1012` challenge invalid
+- `E2004` key fingerprint mismatch
+- `E4002` policy mismatch
 
 ## 판단: “라이브러리에 추가하면 좋은가?”
 - 결론: **예. 반드시 좋은 방향**이다.
 - 이유: SDK가 “알고리즘 제공”을 넘어 **서비스 적용까지 책임지는 제품**이 된다.
 - 특히 Stateless challenge / 복구 체계 / 표준 에러코드는 대기업 도입에 필수다.
-

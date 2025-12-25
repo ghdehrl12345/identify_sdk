@@ -3,16 +3,16 @@
 ## Unit / Integration
 
 - `go test ./...` – default unit coverage, including server proof verification cases (success, malformed proof, challenge binding, commitment mismatch, random challenges).
-- `make run` – end-to-end demo using embedded keys.
+- `make run` – identify-cli 도움말 확인.
+- `make golden` – 회로 변경 리그레션용 golden proof 생성.
 
 ## Benchmarks
 
-- `make bench` runs `go test -bench=. -benchmem ./server` to measure verification throughput.
+- `make bench` runs `go test -bench=. -benchmem ./auth ./age ./crypto` to measure throughput.
 
 ## WASM Integration (Manual E2E)
 
-- `make wasm` builds `html/identify.wasm`.
-- `make serve` to host `html/` locally; open the page and exercise `InitIdentify` and `GenerateIdentifyProof` to validate the browser path.
+- `make wasm` builds `npm/dist/identify.wasm`.
 
 ## WASM Smoke Test (Node)
 

@@ -39,8 +39,10 @@ go.work.sum
 build/*.pk
 build/*.vk
 html/user.pk       # 복사된 키 파일 제외
-!client/user.pk    # embedded proving key (must be tracked)
-!server/user.vk    # embedded verifying key (must be tracked)
+!auth/user.pk      # embedded proving key (must be tracked)
+!auth/user.vk      # embedded verifying key (must be tracked)
+!age/age.pk        # embedded proving key (must be tracked)
+!age/age.vk        # embedded verifying key (must be tracked)
 
 # -----------------------------------
 # 4. Web/Wasm Artifacts
@@ -50,6 +52,7 @@ npm/node_modules/
 client/dist/
 client/wasm/dist/
 html/identify.wasm # 빌드된 WASM 파일은 소스가 아니므로 제외
+npm/dist/
 
 # -----------------------------------
 # 5. Logs & Temp
@@ -61,3 +64,8 @@ yarn-error.log*
 
 # Security Keys 
 *.pem
+
+# Compliance artifacts
+sbom/
+licenses/
+vuln/

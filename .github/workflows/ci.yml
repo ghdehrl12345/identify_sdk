@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.21.x", "1.22.x"]
+        go-version: ["1.22.x"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,3 +33,54 @@ jobs:
         with:
           name: identify-wasm-${{ matrix.go-version }}
           path: /tmp/identify.wasm
+
+  wasm-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build WASM + npm assets
+        run: make build-all
+
+      - name: WASM smoke test
+        run: node npm/scripts/test.js
+
+  compliance:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+
+      - name: Install compliance tools
+        run: |
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+          go install github.com/google/go-licenses@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Generate SBOM + license + vuln report
+        run: ./scripts/compliance.sh
+
+      - name: Upload compliance artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-artifacts
+          path: |
+            sbom/
+            licenses/
+            vuln/

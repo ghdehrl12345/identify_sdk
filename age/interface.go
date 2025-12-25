@@ -15,3 +15,13 @@ type AgeProver interface {
 	// GenerateAgeProof creates a proof for age verification without revealing birth year.
 	GenerateAgeProof(birthYear int, currentYear int, limitAge int) ([]byte, error)
 }
+
+// MetaAgeVerifier enforces metadata matching for vk_id and params_version.
+type MetaAgeVerifier interface {
+	VerifyAgeWithMeta(proof []byte, vkID string, paramsVersion string) (bool, error)
+}
+
+// PolicyProvider exposes policy metadata for client sync.
+type PolicyProvider interface {
+	PolicyBundle() PolicyBundle
+}

@@ -18,6 +18,16 @@ type StatelessAuthenticator interface {
 	VerifyLoginWithToken(proof []byte, publicCommitment string, salt string, challengeToken string) (bool, error)
 }
 
+// MetaAuthenticator enforces metadata matching for vk_id and params_version.
+type MetaAuthenticator interface {
+	VerifyLoginWithMeta(proof []byte, publicCommitment string, salt string, challenge int, vkID string, paramsVersion string) (bool, error)
+}
+
+// PolicyProvider exposes policy metadata for client sync.
+type PolicyProvider interface {
+	PolicyBundle() PolicyBundle
+}
+
 // Prover defines the interface for generating ZKP proofs on the client side.
 type Prover interface {
 	// CalculateCommitment derives a commitment with a random salt.

@@ -25,11 +25,17 @@ type ChallengeTokenClaims struct {
 	Nonce         string `json:"nonce"`
 	VKID          string `json:"vk_id"`
 	ParamsVersion string `json:"params_version"`
+	KeyID         string `json:"kid,omitempty"`
 	Version       string `json:"v"`
 }
 
 // IssueChallengeToken creates a signed, stateless challenge token using HMAC-SHA256.
 func IssueChallengeToken(secret []byte, claims ChallengeTokenClaims) (string, error) {
+	return IssueChallengeTokenWithKey(secret, "", claims)
+}
+
+// IssueChallengeTokenWithKey creates a signed challenge token with an explicit key ID.
+func IssueChallengeTokenWithKey(secret []byte, keyID string, claims ChallengeTokenClaims) (string, error) {
 	if len(secret) == 0 {
 		return "", sdkerrors.ErrTokenKeyMissing
 	}
@@ -48,6 +54,9 @@ func IssueChallengeToken(secret []byte, claims ChallengeTokenClaims) (string, er
 	}
 	if claims.ParamsVersion == "" {
 		claims.ParamsVersion = common.ParamsVersion(common.DefaultSharedConfig())
+	}
+	if keyID != "" {
+		claims.KeyID = keyID
 	}
 
 	payload, err := json.Marshal(claims)
@@ -88,9 +97,55 @@ func ParseChallengeToken(token string, secret []byte) (ChallengeTokenClaims, err
 	return claims, nil
 }
 
+// ParseChallengeTokenWithKeySet validates signature using the key ID from the payload.
+func ParseChallengeTokenWithKeySet(token string, keys map[string][]byte) (ChallengeTokenClaims, error) {
+	if len(keys) == 0 {
+		return ChallengeTokenClaims{}, sdkerrors.ErrTokenKeyMissing
+	}
+	payload, sig, err := splitToken(token)
+	if err != nil {
+		return ChallengeTokenClaims{}, err
+	}
+
+	var claims ChallengeTokenClaims
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return ChallengeTokenClaims{}, sdkerrors.Wrap(sdkerrors.ErrChallengeInvalid.Code, "payload parse failed", err)
+	}
+	key := keys[claims.KeyID]
+	if len(key) == 0 {
+		return ChallengeTokenClaims{}, sdkerrors.ErrChallengeInvalid
+	}
+	expected := signHMAC(key, payload)
+	if !hmac.Equal(sig, expected) {
+		return ChallengeTokenClaims{}, sdkerrors.ErrChallengeInvalid
+	}
+	return claims, nil
+}
+
 // ValidateChallengeToken verifies signature, expiry, and policy key/version matching.
 func ValidateChallengeToken(token string, secret []byte, now time.Time, expectedVKID, expectedParams string) (ChallengeTokenClaims, error) {
 	claims, err := ParseChallengeToken(token, secret)
+	if err != nil {
+		return ChallengeTokenClaims{}, err
+	}
+	if claims.ExpiresAt <= now.Unix() {
+		return ChallengeTokenClaims{}, sdkerrors.ErrChallengeExpired
+	}
+	if expectedVKID != "" && claims.VKID != expectedVKID {
+		return ChallengeTokenClaims{}, sdkerrors.ErrChallengeInvalid
+	}
+	if expectedParams != "" && claims.ParamsVersion != expectedParams {
+		return ChallengeTokenClaims{}, sdkerrors.ErrPolicyMismatch
+	}
+	if claims.Version != "" && claims.Version != ChallengeTokenVersion {
+		return ChallengeTokenClaims{}, sdkerrors.ErrChallengeInvalid
+	}
+	return claims, nil
+}
+
+// ValidateChallengeTokenWithKeySet verifies signature using key ID, expiry, and metadata checks.
+func ValidateChallengeTokenWithKeySet(token string, keys map[string][]byte, now time.Time, expectedVKID, expectedParams string) (ChallengeTokenClaims, error) {
+	claims, err := ParseChallengeTokenWithKeySet(token, keys)
 	if err != nil {
 		return ChallengeTokenClaims{}, err
 	}
@@ -121,6 +176,22 @@ func encodeSegment(b []byte) string {
 
 func decodeSegment(s string) ([]byte, error) {
 	return base64.RawURLEncoding.DecodeString(s)
+}
+
+func splitToken(token string) ([]byte, []byte, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 2 {
+		return nil, nil, sdkerrors.ErrChallengeInvalid
+	}
+	payload, err := decodeSegment(parts[0])
+	if err != nil {
+		return nil, nil, sdkerrors.Wrap(sdkerrors.ErrChallengeInvalid.Code, "payload decode failed", err)
+	}
+	sig, err := decodeSegment(parts[1])
+	if err != nil {
+		return nil, nil, sdkerrors.Wrap(sdkerrors.ErrChallengeInvalid.Code, "signature decode failed", err)
+	}
+	return payload, sig, nil
 }
 
 func generateNonce() (string, error) {

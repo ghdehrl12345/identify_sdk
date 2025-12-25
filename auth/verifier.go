@@ -28,6 +28,7 @@ type Verifier struct {
 	verifyingKey groth16.VerifyingKey
 	config       common.SharedConfig
 	tokenKey     []byte
+	tokenKeys    map[string][]byte
 }
 
 // VerifierConfig holds configuration for the verifier.
@@ -35,6 +36,7 @@ type VerifierConfig struct {
 	Config     common.SharedConfig
 	ExpectedVK string // optional: expected verifying key fingerprint
 	TokenKey   []byte // optional: HMAC key for stateless challenge tokens
+	TokenKeys  map[string][]byte
 }
 
 // NewVerifier creates a verifier with default config.
@@ -59,6 +61,7 @@ func NewVerifierWithConfig(cfg VerifierConfig) (*Verifier, error) {
 		verifyingKey: vk,
 		config:       pickSharedConfig(cfg.Config),
 		tokenKey:     cfg.TokenKey,
+		tokenKeys:    cfg.TokenKeys,
 	}, nil
 }
 
@@ -121,21 +124,48 @@ func (v *Verifier) VerifyLogin(proofBytes []byte, publicCommitment string, salt 
 
 // VerifyLoginWithToken validates a stateless challenge token and verifies the proof.
 func (v *Verifier) VerifyLoginWithToken(proofBytes []byte, publicCommitment string, salt string, challengeToken string) (bool, error) {
-	if len(v.tokenKey) == 0 {
-		return false, sdkerrors.ErrTokenKeyMissing
-	}
 	expectedVK := VerifyingKeyID()
 	expectedParams := common.ParamsVersion(v.config)
-	claims, err := ValidateChallengeToken(challengeToken, v.tokenKey, time.Now(), expectedVK, expectedParams)
+	var claims ChallengeTokenClaims
+	var err error
+	if len(v.tokenKeys) > 0 {
+		claims, err = ValidateChallengeTokenWithKeySet(challengeToken, v.tokenKeys, time.Now(), expectedVK, expectedParams)
+	} else {
+		if len(v.tokenKey) == 0 {
+			return false, sdkerrors.ErrTokenKeyMissing
+		}
+		claims, err = ValidateChallengeToken(challengeToken, v.tokenKey, time.Now(), expectedVK, expectedParams)
+	}
 	if err != nil {
 		return false, err
 	}
 	return v.VerifyLogin(proofBytes, publicCommitment, salt, claims.Challenge)
 }
 
+// VerifyLoginWithMeta verifies proof and enforces vk_id/params_version metadata match.
+func (v *Verifier) VerifyLoginWithMeta(proofBytes []byte, publicCommitment string, salt string, challenge int, vkID string, paramsVersion string) (bool, error) {
+	if vkID != "" && vkID != VerifyingKeyID() {
+		return false, sdkerrors.ErrKeyMismatch
+	}
+	expectedParams := common.ParamsVersion(v.config)
+	if paramsVersion != "" && paramsVersion != expectedParams {
+		return false, sdkerrors.ErrPolicyMismatch
+	}
+	return v.VerifyLogin(proofBytes, publicCommitment, salt, challenge)
+}
+
 // GetConfig returns the shared configuration.
 func (v *Verifier) GetConfig() common.SharedConfig {
 	return v.config
+}
+
+// PolicyBundle returns the shared config with metadata for client sync.
+func (v *Verifier) PolicyBundle() PolicyBundle {
+	return PolicyBundle{
+		Config:        v.config,
+		ParamsVersion: common.ParamsVersion(v.config),
+		VKID:          VerifyingKeyID(),
+	}
 }
 
 // VerifyingKeyID returns the fingerprint of the embedded verifying key.

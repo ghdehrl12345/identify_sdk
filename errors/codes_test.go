@@ -34,6 +34,7 @@ func TestErrorCodes(t *testing.T) {
 		{ErrVerificationFail, "E1003"},
 		{ErrEncryptionFailed, "E3001"},
 		{ErrConfigNotFound, "E4001"},
+		{ErrKeyRotation, "E2006"},
 	}
 
 	for _, tt := range tests {

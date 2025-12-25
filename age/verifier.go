@@ -11,6 +11,7 @@ import (
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/ghdehrl12345/identify_sdk/common"
+	sdkerrors "github.com/ghdehrl12345/identify_sdk/errors"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -90,9 +91,30 @@ func (v *Verifier) GetConfig() common.SharedConfig {
 	return v.config
 }
 
+// PolicyBundle returns the shared config with metadata for client sync.
+func (v *Verifier) PolicyBundle() PolicyBundle {
+	return PolicyBundle{
+		Config:        v.config,
+		ParamsVersion: common.ParamsVersion(v.config),
+		VKID:          AgeVerifyingKeyID(),
+	}
+}
+
 // AgeVerifyingKeyID returns the fingerprint of the embedded age verifying key.
 func AgeVerifyingKeyID() string {
 	return EmbeddedAgeVerifyingKeyID
+}
+
+// VerifyAgeWithMeta verifies proof and enforces vk_id/params_version metadata match.
+func (v *Verifier) VerifyAgeWithMeta(proofBytes []byte, vkID string, paramsVersion string) (bool, error) {
+	if vkID != "" && vkID != AgeVerifyingKeyID() {
+		return false, sdkerrors.ErrKeyMismatch
+	}
+	expectedParams := common.ParamsVersion(v.config)
+	if paramsVersion != "" && paramsVersion != expectedParams {
+		return false, sdkerrors.ErrPolicyMismatch
+	}
+	return v.VerifyAge(proofBytes)
 }
 
 func pickAgeSharedConfig(cfg common.SharedConfig) common.SharedConfig {

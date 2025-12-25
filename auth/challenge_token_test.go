@@ -33,6 +33,29 @@ func TestChallengeTokenRoundTrip(t *testing.T) {
 	}
 }
 
+func TestChallengeTokenKeySet(t *testing.T) {
+	keys := map[string][]byte{
+		"k1": []byte("secret-1"),
+		"k2": []byte("secret-2"),
+	}
+	claims := ChallengeTokenClaims{
+		UserID:    "user-123",
+		Challenge: 4242,
+		ExpiresAt: time.Now().Add(5 * time.Minute).Unix(),
+	}
+	token, err := IssueChallengeTokenWithKey(keys["k1"], "k1", claims)
+	if err != nil {
+		t.Fatalf("issue token: %v", err)
+	}
+	got, err := ValidateChallengeTokenWithKeySet(token, keys, time.Now(), "", "")
+	if err != nil {
+		t.Fatalf("validate token: %v", err)
+	}
+	if got.KeyID != "k1" {
+		t.Fatalf("expected key id k1, got %s", got.KeyID)
+	}
+}
+
 func TestChallengeTokenExpired(t *testing.T) {
 	secret := []byte("test-secret")
 	claims := ChallengeTokenClaims{

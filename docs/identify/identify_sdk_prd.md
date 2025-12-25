@@ -22,12 +22,14 @@ Provide a production-ready authentication SDK that enables ZKP-based login witho
 ### Phase 1: Standardization and Compatibility
 - Standard encoding format definition (hex/base64, length constraints)
 - Proof and key metadata fields included in outputs
+- Policy bundle endpoint for client sync (params_version + vk_id)
 - E2E test vectors and sample flows (Go + WASM)
 
 ### Phase 2: Stateless Challenge and Ops Stability
 - Stateless challenge token issuance and verification
 - Built-in TTL and replay prevention policy
 - Standardized error codes for monitoring
+- Token signing key rotation support (kid)
 
 ### Phase 3: Recovery and Device Change
 - Key backup encryption/decryption APIs
@@ -54,6 +56,7 @@ Provide a production-ready authentication SDK that enables ZKP-based login witho
 - Challenge token signed (HMAC-SHA256 or Ed25519)
 - Version mismatch explicitly surfaced
 - No server-side exposure of raw secrets
+- Policy bundle must be the single source of truth for client config
 
 ## 9. Success Metrics
 - Time-to-integrate <= 1 day for standard flow
@@ -63,4 +66,3 @@ Provide a production-ready authentication SDK that enables ZKP-based login witho
 ## 10. Deliverables
 - SDKs: Go (server), WASM/TS (client), Docs, Test vectors
 - Reference flow documentation: register -> challenge -> login -> recovery
-

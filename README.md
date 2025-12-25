@@ -125,6 +125,7 @@ identify_sdk/
 - ⚠️ **PEM 키 파일**은 환경변수 또는 KMS로 관리. 저장소에 커밋 금지.
 - 챌린지는 매 로그인마다 새로 발급하여 Replay Attack 방어.
 - 클라이언트와 서버 간 정책(currentYear, limitAge) 동기화 필수.
+- `PolicyBundle()`로 서버 정책/키 메타데이터(`params_version`, `vk_id`)를 내려주고 클라이언트가 따라야 합니다.
 
 ## Stateless Challenge Token (무상태 챌린지)
 
@@ -164,6 +165,19 @@ go test ./... -v
 go test ./crypto/... -v
 go test ./auth/... -v
 ```
+
+## 샘플 서버 (정책/키 메타데이터 연동)
+
+```bash
+export CHALLENGE_TOKEN_KEY="change-me"
+export CHALLENGE_TOKEN_KID="k1"
+go run ./cmd/sample-server
+```
+
+- `GET /policy` 정책/키 메타데이터 반환
+- `GET /proving-key?type=auth|age` proving key 배포 (base64)
+- `POST /challenge` stateless 챌린지 토큰 발급
+- `POST /verify` 토큰 + proof 검증
 
 ## License
 
