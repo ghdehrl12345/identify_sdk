@@ -51,13 +51,20 @@ func ComputeBinding(commitment string, challenge int) (string, error) {
 	chInt := big.NewInt(int64(challenge))
 
 	bindHasher := mimc.NewMiMC()
-	bindHasher.Write(commitInt.Bytes())
-	bindHasher.Write(chInt.Bytes())
+	bindHasher.Write(intBytes(&commitInt))
+	bindHasher.Write(intBytes(chInt))
 	bindBytes := bindHasher.Sum(nil)
 
 	var bindInt big.Int
 	bindInt.SetBytes(bindBytes)
 	return bindInt.String(), nil
+}
+
+func intBytes(v *big.Int) []byte {
+	if v.Sign() == 0 {
+		return []byte{0}
+	}
+	return v.Bytes()
 }
 
 // ComputeCommitmentAndBinding returns both commitment and binding in one call.
