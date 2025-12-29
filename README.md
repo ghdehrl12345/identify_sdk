@@ -1,188 +1,148 @@
-# Identify SDK v2.0
+# Identify SDK v2.1
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/ghdehrl12345/identify_sdk/v2)](https://goreportcard.com/report/github.com/ghdehrl12345/identify_sdk/v2)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
-[![Version](https://img.shields.io/badge/version-v2.0.0-green.svg)](https://github.com/ghdehrl12345/identify_sdk/v2/releases)
+[![Version](https://img.shields.io/badge/version-v2.1.0-green.svg)](https://github.com/ghdehrl12345/identify_sdk/releases/tag/v2.1.0)
 
-**프라이버시 중심 보안 라이브러리**로, 홈쇼핑, SNS, 핀테크 등 다양한 프로젝트에서 필요한 보안 기능만 선택적으로 사용할 수 있습니다.
+**ZKP(영지식 증명) 기반 인증 라이브러리** - 비밀번호가 서버에 전송되지 않는 안전한 로그인 시스템을 구축합니다.
 
-## 주요 기능
+## 💡 ZKP 인증이란?
 
-| 모듈 | 기능 | 사용 예시 |
-|------|------|----------|
-| `auth` | ZKP 기반 비밀번호 없는 로그인 | 모든 서비스 |
-| `age` | 익명 성인 인증 | 주류/담배 쇼핑몰 |
-| `crypto` | 배송정보/콘텐츠 암호화, 데이터 마스킹 | 이커머스, SNS DM |
-| `commitment` | MiMC 해시 커밋먼트 | 인증 기반 서비스 |
-| `audit` | 감사 로깅 | 금융/의료 서비스 |
+사용자가 **비밀번호를 알고 있다는 사실**만 증명하고, 비밀번호 자체는 전송하지 않는 인증 방식입니다.
 
-## 설치
+```
+[기존 방식]  클라이언트 --비밀번호--> 서버 (서버가 비밀번호 확인)
+[ZKP 방식]  클라이언트 --증명(proof)--> 서버 (서버는 증명만 검증)
+```
+
+## 🔒 보안 범위 (정직한 설명)
+
+### ✅ ZKP가 보호하는 것
+
+| 공격 유형 | 기존 방식 | ZKP |
+|----------|----------|-----|
+| **네트워크 스니핑** | 비밀번호 노출 | ✅ 증명만 전송 (비밀번호 없음) |
+| **서버 DB 해킹** | 해시 탈취 → 레인보우 테이블 | ✅ Argon2 + Salt + MiMC |
+| **서버 관리자 악용** | 비밀번호 열람 가능 | ✅ 서버에 비밀번호 자체가 없음 |
+| **MITM 공격** | 세션 하이재킹 | ✅ 챌린지 바인딩 |
+| **Replay 공격** | 토큰 재사용 | ✅ JTI + 만료 시간 |
+
+### ❌ ZKP가 보호하지 못하는 것
+
+| 공격 유형 | 설명 |
+|----------|------|
+| **클라이언트 해킹** | 키로거, 악성코드 등으로 클라이언트가 해킹되면 비밀번호 노출 (모든 인증 시스템 공통) |
+| **약한 비밀번호** | DB 해킹 후 브루트포스 가능 - **강력한 비밀번호 필수** |
+
+### 💪 Commitment 브루트포스 난이도
+
+DB가 해킹되어 `commitment + salt`가 노출된 경우:
+
+| 비밀번호 유형 | 조합 수 | 예상 소요 시간* |
+|--------------|--------|---------------|
+| 6자리 숫자 PIN | 100만 | ~17분 ⚠️ |
+| 8자리 영숫자 | 218조 | ~7,000년 |
+| 12자리 영숫자+특수 | 10^23 | 사실상 불가능 |
+
+*Argon2 기준 (iterations=3, memory=64MB), 고성능 GPU 1,000회/초 가정
+
+> **결론**: 강력한 비밀번호 정책을 함께 적용해야 합니다.
+
+## ✨ 주요 기능
+
+| 모듈 | 기능 | 설명 |
+|------|------|------|
+| `auth` | **ZKP 로그인** | Groth16 기반 비밀번호 없는 인증 |
+| `auth` | **Rate Limiting** | Brute-force 공격 방어 |
+| `auth` | **키 로테이션** | 자동 키 만료 및 갱신 |
+| `age` | **익명 성인 인증** | 생년 노출 없이 나이만 증명 |
+| `commitment` | **MiMC 해시** | Argon2 + MiMC 기반 commitment |
+| `audit` | **감사 로깅** | 비동기 인증 로그 기록 |
+| `crypto` | **암호화 (부가)** | 배송정보/DM 암호화 |
+
+## 📦 설치
 
 ```bash
-go get github.com/ghdehrl12345/identify_sdk/v2@v2.0.3
+go get github.com/ghdehrl12345/identify_sdk/v2@v2.1.0
 ```
 
-## 프로젝트별 사용 예시
+## 🚀 빠른 시작
 
-### 🛒 홈쇼핑: 로그인 + 배송 암호화
+### 1. 회원가입 (Commitment 생성)
 
 ```go
-import (
-    "github.com/ghdehrl12345/identify_sdk/v2/auth"
-    "github.com/ghdehrl12345/identify_sdk/v2/crypto"
-)
+import "github.com/ghdehrl12345/identify_sdk/v2/auth"
 
-// 서버: 로그인 검증
-verifier, _ := auth.NewVerifier()
-ok, _ := verifier.VerifyLogin(proofBytes, commitment, salt, challenge)
+// 클라이언트에서 commitment 생성
+prover, _ := auth.NewUserProver()
+commitment, salt, _ := prover.CalculateCommitment("user_password")
 
-// 배송 정보 암호화
-encryptor, _ := crypto.NewDeliveryEncryptorFromEnv()
-encrypted, _ := encryptor.Encrypt("서울시 강남구 테헤란로 123")
+// commitment와 salt를 서버 DB에 저장 (비밀번호는 저장 안 함!)
+db.Save(userID, commitment, salt)
 ```
 
-### 📱 SNS: 로그인 + 성인 인증 + DM 암호화
+### 2. 로그인 (서버)
 
 ```go
-import (
-    "github.com/ghdehrl12345/identify_sdk/v2/auth"
-    "github.com/ghdehrl12345/identify_sdk/v2/age"
-    "github.com/ghdehrl12345/identify_sdk/v2/crypto"
-)
-
-// 성인 인증
-ageVerifier, _ := age.NewVerifier()
-isAdult, _ := ageVerifier.VerifyAge(ageProof)
-
-// DM 암호화
-content := crypto.NewContentEncryptor()
-key, _ := crypto.GenerateKey()
-ciphertext, _ := content.Encrypt([]byte("비밀 메시지"), key)
-```
-
-### 🏦 핀테크: 로그인 + 감사 로깅
-
-```go
-import (
-    "github.com/ghdehrl12345/identify_sdk/v2/auth"
-    "github.com/ghdehrl12345/identify_sdk/v2/audit"
-)
-
-// 감사 로거 설정
-logger, _ := audit.NewJSONLoggerToFile("/var/log/audit.json")
-
-// 로그인 시도 기록
-verifier, _ := auth.NewVerifier()
-ok, err := verifier.VerifyLogin(proofBytes, commitment, salt, challenge)
-logger.LogAuthAttempt(userID, ok, map[string]string{"ip": clientIP})
-```
-
-## 모듈 구조
-
-```
-identify_sdk/
-├── auth/           # ZKP 인증 (필수)
-│   ├── prover.go   # 클라이언트: 증명 생성
-│   └── verifier.go # 서버: 증명 검증
-├── age/            # 성인 인증 (선택)
-│   ├── prover.go
-│   └── verifier.go
-├── crypto/         # 암호화 유틸리티 (선택)
-│   ├── delivery.go # RSA-OAEP 배송정보 암호화
-│   ├── content.go  # AES-256-GCM 콘텐츠 암호화
-│   └── masking.go  # 데이터 마스킹
-├── commitment/     # MiMC 해시 (공통)
-│   └── mimc.go
-├── audit/          # 감사 로깅 (선택)
-│   └── logger.go
-└── common/         # 공유 설정
-    └── config.go
-```
-
-## 마이그레이션 가이드 (v1 → v2)
-
-### Import 경로 변경
-
-```diff
--import "github.com/ghdehrl12345/identify_sdk/v2/server"
--import "github.com/ghdehrl12345/identify_sdk/v2/client"
-+import "github.com/ghdehrl12345/identify_sdk/v2/auth"
-+import "github.com/ghdehrl12345/identify_sdk/v2/age"
-```
-
-### 함수명 변경
-
-```diff
--sdk, _ := server.NewRealSDK()
--ok, _ := sdk.VerifyLogin(proof, commitment, salt, challenge)
-+verifier, _ := auth.NewVerifier()
-+ok, _ := verifier.VerifyLogin(proof, commitment, salt, challenge)
-```
-
-## 보안 노트
-
-- ⚠️ **Argon2 iteration**이 v2.0에서 1→3으로 강화됨. 기존 commitment는 재생성 필요.
-- ⚠️ **PEM 키 파일**은 환경변수 또는 KMS로 관리. 저장소에 커밋 금지.
-- 챌린지는 매 로그인마다 새로 발급하여 Replay Attack 방어.
-- 클라이언트와 서버 간 정책(currentYear, limitAge) 동기화 필수.
-- `PolicyBundle()`로 서버 정책/키 메타데이터(`params_version`, `vk_id`)를 내려주고 클라이언트가 따라야 합니다.
-
-## Stateless Challenge Token (무상태 챌린지)
-
-```go
-import (
-    "time"
-
-    "github.com/ghdehrl12345/identify_sdk/v2/auth"
-    "github.com/ghdehrl12345/identify_sdk/v2/common"
-)
-
-secret := []byte("server-hmac-secret")
-verifier, _ := auth.NewVerifierWithConfig(auth.VerifierConfig{
-    Config:   common.DefaultSharedConfig(),
-    TokenKey: secret,
-})
-
+// 챌린지 발급 (매 로그인마다 새로 발급)
 claims := auth.ChallengeTokenClaims{
-    UserID:        "user-123",
-    Challenge:     4242,
-    ExpiresAt:     time.Now().Add(2 * time.Minute).Unix(),
-    VKID:          auth.VerifyingKeyID(),
-    ParamsVersion: common.ParamsVersion(verifier.GetConfig()),
+    UserID:    userID,
+    Challenge: rand.Intn(1000000),
+    ExpiresAt: time.Now().Add(2 * time.Minute).Unix(),
 }
-token, _ := auth.IssueChallengeToken(secret, claims)
-
-ok, _ := verifier.VerifyLoginWithToken(proofBytes, commitment, salt, token)
+token, _ := auth.IssueChallengeToken(secretKey, claims)
 ```
 
-## 테스트
+### 3. 로그인 (클라이언트)
+
+```go
+// 증명 생성
+proof, _, _, _ := prover.GenerateProof(
+    "user_password", 1990, cfg.TargetYear, cfg.LimitAge, challenge, salt,
+)
+```
+
+### 4. 증명 검증 (서버)
+
+```go
+verifier, _ := auth.NewVerifier()
+limiter := auth.NewMemoryRateLimiter(auth.DefaultRateLimitConfig())
+
+if !limiter.AllowLogin(userID, clientIP) {
+    return errors.New("너무 많은 시도")
+}
+
+ok, _ := verifier.VerifyLoginWithToken(proof, commitment, salt, token)
+if !ok {
+    limiter.RecordFailure(userID, clientIP)
+}
+```
+
+## � CLI 도구
 
 ```bash
-# 전체 테스트
+identify-cli generate-keys --output ./keys
+identify-cli verify --proof proof.hex --commitment "..." --salt "..." --challenge 4242
+identify-cli migrate --secret "password" --salt "..." --json
+```
+
+## ⚙️ 환경 변수
+
+```bash
+CHALLENGE_TOKEN_KEY="your-secret-key"  # 필수
+```
+
+## 🧪 테스트
+
+```bash
 go test ./... -v
-
-# 특정 모듈 테스트
-go test ./crypto/... -v
-go test ./auth/... -v
 ```
 
-## 배포 체크리스트
+## 📚 문서
 
-자세한 절차는 `docs/DEPLOYMENT.md`를 참고하세요.
+- [SECURITY.md](SECURITY.md) - 보안 가이드
+- [CHANGELOG.md](CHANGELOG.md) - 변경 이력
 
-## 샘플 서버 (정책/키 메타데이터 연동)
-
-```bash
-export CHALLENGE_TOKEN_KEY="change-me"
-export CHALLENGE_TOKEN_KID="k1"
-go run ./cmd/sample-server
-```
-
-- `GET /policy` 정책/키 메타데이터 반환
-- `GET /proving-key?type=auth|age` proving key 배포 (base64)
-- `POST /challenge` stateless 챌린지 토큰 발급
-- `POST /verify` 토큰 + proof 검증
-
-## License
+## 📄 License
 
 MIT License © 2025 Identify SDK contributors.

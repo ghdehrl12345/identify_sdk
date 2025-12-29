@@ -2,23 +2,112 @@
 
 ## Supported Versions
 
-We provide security updates for the latest minor release only. Older releases may not receive fixes.
+| Version | Supported |
+|---------|-----------|
+| v2.1.x  | ✅ Active |
+| < v2.1  | ❌ Not supported |
 
 ## Reporting a Vulnerability
 
 Please use one of the following channels:
-- GitHub Security Advisories (preferred): create a private advisory in this repository.
-- If you cannot use GitHub, contact the maintainers privately before public disclosure.
 
-We aim to acknowledge within 48 hours and provide a remediation plan within 7 days for confirmed issues.
+1. **GitHub Security Advisories** (preferred): Create a private advisory in this repository
+2. **Email**: Contact maintainers privately before public disclosure
 
-## Security Notes
+We aim to:
+- Acknowledge within **48 hours**
+- Provide remediation plan within **7 days** for confirmed issues
 
-- Proofs bind to a server-issued challenge; issue a fresh challenge for every login attempt to prevent replay.
-- Secrets (password) and birth year stay client-side; only commitments and Groth16 proofs travel over the network.
-- Regenerate and commit `auth/user.pk`, `auth/user.vk`, `age/age.pk`, `age/age.vk` whenever the circuits change; stale keys will break verification.
-- Configure current year and age limits from server policy rather than hard-coding when integrating into production.
-- Consider rotating proving/verifying keys when updating circuits or after long-term use.
-- Manage secrets (if any) via your KMS and ensure transport is protected via TLS.
-- Keep the proving/verifying key fingerprints aligned (`auth.ProvingKeyID`, `auth.VerifyingKeyID`, `age.AgeProvingKeyID`, `age.AgeVerifyingKeyID`); reject mismatched versions.
-- Ensure client and server use the same policy inputs (`TargetYear`, `LimitAge`); policy drift will fail verification.
+## Security Features
+
+### Authentication
+
+| Feature | Description |
+|---------|-------------|
+| **ZKP Groth16** | Password never leaves the client |
+| **JTI Token ID** | Prevents replay attacks with unique token IDs |
+| **Challenge Binding** | H(commitment, challenge) binds proof to session |
+| **Rate Limiting** | Built-in brute-force protection |
+
+### Cryptography
+
+| Feature | Specification |
+|---------|---------------|
+| **RSA** | Minimum 4096-bit keys enforced |
+| **AES** | AES-256-GCM with random nonce |
+| **Argon2id** | iterations=3, memory=64MB, threads=4 |
+| **Salt** | 256-bit (32 bytes) random |
+| **HMAC** | SHA-256 for token signing |
+
+### Key Management
+
+- **Fingerprinting**: blake2b-256 for key identity
+- **Rotation**: `KeyManager` with auto-expiry and notifications
+- **PolicyBundle**: Server→Client policy synchronization
+
+## Security Best Practices
+
+### ✅ Do
+
+- Issue a **fresh challenge** for every login attempt
+- Use **environment variables** or **KMS** for key storage
+- Enable **TLS** for all network communication
+- Sync client/server policies via `PolicyBundle()`
+- Use `AsyncJSONLogger` for audit logging in production
+
+### ❌ Don't
+
+- Never commit PEM keys to repositories
+- Never reuse challenge tokens
+- Never use RSA keys smaller than 4096 bits
+- Never disable rate limiting in production
+
+## Environment Variables
+
+```bash
+# Required for delivery encryption
+DELIVERY_PUBLIC_KEY_PATH=/secure/path/public.pem
+DELIVERY_PRIVATE_KEY_PATH=/secure/path/private.pem
+
+# Required for stateless tokens
+CHALLENGE_TOKEN_KEY=<32+ byte secret>
+```
+
+## Key Rotation
+
+```go
+manager := auth.NewMemoryKeyManager()
+manager.RegisterVersion(auth.KeyVersion{
+    VKID:      auth.VerifyingKeyID(),
+    CreatedAt: time.Now(),
+    ExpiresAt: time.Now().Add(365 * 24 * time.Hour),
+})
+
+rotator := auth.NewAutoKeyRotator(manager, config, func(e auth.KeyRotationEvent) {
+    log.Printf("Key event: %s", e.Message)
+})
+rotator.Start()
+```
+
+## Audit Logging
+
+All authentication attempts should be logged:
+
+```go
+logger.LogAuthAttempt(userID, success, map[string]string{
+    "ip":       clientIP,
+    "user_agent": userAgent,
+})
+```
+
+## Dependencies
+
+| Package | Purpose | Version |
+|---------|---------|---------|
+| gnark | ZKP circuits | v0.13.0 |
+| gnark-crypto | MiMC, bn254 | v0.18.1 |
+| golang.org/x/crypto | Argon2, blake2b | v0.39.0 |
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for security-related updates.
