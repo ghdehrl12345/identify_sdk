@@ -18,6 +18,8 @@ func main() {
 		cmdGenerateKeys(os.Args[2:])
 	case "verify":
 		cmdVerify(os.Args[2:])
+	case "migrate":
+		cmdMigrate(os.Args[2:])
 	case "version":
 		cmdVersion()
 	case "help", "-h", "--help":
@@ -38,12 +40,14 @@ Usage:
 Commands:
   generate-keys   Generate proving and verifying keys
   verify          Verify a ZKP proof
+  migrate         Migrate v1 commitments to v2 (Argon2 upgrade)
   version         Show version information
   help            Show this help message
 
 Examples:
   identify-cli generate-keys --output ./keys
   identify-cli verify --proof proof.hex --commitment "123..." --salt "abc..." --challenge 4242
+  identify-cli migrate --secret "password" --salt "abc123..." --old-commitment "123..."
   identify-cli version
 
 Run 'identify-cli <command> --help' for more information on a command.`)

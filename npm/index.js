@@ -5,6 +5,33 @@ const path = require("path");
 require("./dist/wasm_exec.js");
 
 /**
+ * Check if running in production mode.
+ * @returns {boolean}
+ */
+function isProduction() {
+  return process.env.NODE_ENV === "production";
+}
+
+/**
+ * Sanitize error message for production.
+ * In production, hides internal details and returns generic message.
+ * @param {string} message - Original error message
+ * @param {string} genericMessage - Generic message for production
+ * @returns {string}
+ */
+function sanitizeError(message, genericMessage = "An error occurred") {
+  if (isProduction()) {
+    // Extract error code if present (e.g., "E1001: ...")
+    const codeMatch = message.match(/^(E\d{4}):/);
+    if (codeMatch) {
+      return `${codeMatch[1]}: ${genericMessage}`;
+    }
+    return genericMessage;
+  }
+  return message;
+}
+
+/**
  * Initialize the WASM prover runtime.
  * @param {Object} opts - Options
  * @param {string} [opts.wasmPath] - Path to identify.wasm
@@ -23,7 +50,7 @@ async function init(opts = {}) {
   const pkBytes = opts.provingKeyBytes || (await fs.promises.readFile(pkFile));
 
   if (typeof Go !== "function") {
-    throw new Error("E4001: Go runtime (wasm_exec.js) not loaded");
+    throw new Error(sanitizeError("E4001: Go runtime (wasm_exec.js) not loaded", "Runtime initialization failed"));
   }
 
   const go = new Go();
@@ -34,16 +61,16 @@ async function init(opts = {}) {
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   if (typeof global.InitIdentify !== "function") {
-    throw new Error("E4002: InitIdentify function not found");
+    throw new Error(sanitizeError("E4002: InitIdentify function not found", "Initialization failed"));
   }
 
   const ok = global.InitIdentify(new Uint8Array(pkBytes), opts.config || {});
   if (ok !== true) {
-    throw new Error("E4003: InitIdentify failed");
+    throw new Error(sanitizeError("E4003: InitIdentify failed", "Initialization failed"));
   }
 
   if (typeof global.GenerateIdentifyProof !== "function") {
-    throw new Error("E4004: GenerateIdentifyProof function not found");
+    throw new Error(sanitizeError("E4004: GenerateIdentifyProof function not found", "Initialization failed"));
   }
 
   return new IdentifyClient();
@@ -72,7 +99,7 @@ class IdentifyClient {
       saltHex || ""
     );
     if (typeof res === "string" && res.startsWith("Error")) {
-      throw new Error(res);
+      throw new Error(sanitizeError(res, "Proof generation failed"));
     }
     return {
       proof: res.proof,
@@ -95,7 +122,7 @@ class IdentifyClient {
     const cfg = config || {};
     const res = global.GenerateAgeProof(birthYear, cfg);
     if (typeof res === "string" && res.startsWith("Error")) {
-      throw new Error(res);
+      throw new Error(sanitizeError(res, "Age proof generation failed"));
     }
     return {
       proof: res.proof,
@@ -106,4 +133,5 @@ class IdentifyClient {
   }
 }
 
-module.exports = { init, IdentifyClient };
+module.exports = { init, IdentifyClient, isProduction, sanitizeError };
+

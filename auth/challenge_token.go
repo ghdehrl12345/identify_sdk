@@ -23,6 +23,7 @@ type ChallengeTokenClaims struct {
 	Challenge     int    `json:"challenge"`
 	ExpiresAt     int64  `json:"exp"`
 	Nonce         string `json:"nonce"`
+	JTI           string `json:"jti"` // Unique token ID for replay prevention
 	VKID          string `json:"vk_id"`
 	ParamsVersion string `json:"params_version"`
 	KeyID         string `json:"kid,omitempty"`
@@ -48,6 +49,13 @@ func IssueChallengeTokenWithKey(secret []byte, keyID string, claims ChallengeTok
 			return "", sdkerrors.Wrap(sdkerrors.ErrChallengeInvalid.Code, "nonce generation failed", err)
 		}
 		claims.Nonce = nonce
+	}
+	if claims.JTI == "" {
+		jti, err := generateJTI()
+		if err != nil {
+			return "", sdkerrors.Wrap(sdkerrors.ErrChallengeInvalid.Code, "jti generation failed", err)
+		}
+		claims.JTI = jti
 	}
 	if claims.Version == "" {
 		claims.Version = ChallengeTokenVersion
@@ -200,4 +208,16 @@ func generateNonce() (string, error) {
 		return "", fmt.Errorf("nonce rand failed: %w", err)
 	}
 	return hex.EncodeToString(buf), nil
+}
+
+// generateJTI generates a unique token ID (UUID v4 format).
+func generateJTI() (string, error) {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return "", fmt.Errorf("jti rand failed: %w", err)
+	}
+	// Set version (4) and variant (8, 9, a, b)
+	buf[6] = (buf[6] & 0x0f) | 0x40 // Version 4
+	buf[8] = (buf[8] & 0x3f) | 0x80 // Variant
+	return fmt.Sprintf("%x-%x-%x-%x-%x", buf[0:4], buf[4:6], buf[6:8], buf[8:10], buf[10:16]), nil
 }

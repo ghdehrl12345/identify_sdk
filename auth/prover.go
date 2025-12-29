@@ -153,9 +153,13 @@ func (u *UserProver) GenerateProof(secret string, birthYear int, currentYear int
 	return buf.Bytes(), commitmentStr, binding, nil
 }
 
-// GenerateSalt generates a random 16-byte salt as hex string.
+// SaltBytes is the number of bytes for salt generation.
+// NIST recommends 128-bit minimum; we use 256-bit (32 bytes) for enhanced security.
+const SaltBytes = 32
+
+// GenerateSalt generates a random 32-byte salt as hex string.
 func GenerateSalt() (string, error) {
-	buf := make([]byte, 16)
+	buf := make([]byte, SaltBytes)
 	if _, err := rand.Read(buf); err != nil {
 		return "", err
 	}
